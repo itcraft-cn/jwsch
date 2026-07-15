@@ -31,7 +31,7 @@
         <netty.version>4.2.0.Final</netty.version>
         <guava.version>31.1-jre</guava.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <logback.version>1.2.12</logback.version>
+        <logback.version>1.2.13</logback.version>
         <micrometer.version>1.11.0</micrometer.version>
         <snakeyaml.version>2.0</snakeyaml.version>
         <zero-allocation-hashing.version>0.16</zero-allocation-hashing.version>
