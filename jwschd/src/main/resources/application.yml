@@ -1,0 +1,27 @@
+jwsch:
+  enabled: true
+  boss-threads: 1
+  worker-threads: 0
+  
+  websocket:
+    port: 8080
+    path: /ws
+    max-frame-size: 65536
+    
+  tcp:
+    port: 9090
+    
+  cluster:
+    enabled: false
+    node-id: ""
+    host: ""
+    port: 10000
+    
+  health:
+    enabled: false
+    port: 8081
+    
+  metrics:
+    enabled: false
+    port: 8082
+    path: /metrics

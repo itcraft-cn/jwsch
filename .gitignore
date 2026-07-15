@@ -1,0 +1,42 @@
+# Maven target directories
+target/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+.project
+.classpath
+.settings
+.factorypath
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+
+# Generated frontend files
+jwsch-sample/sample-webapp/src/main/resources/static/
+jwsch-sample/sample-webapp/frontend/dist/
+jwsch-js/lib/
+
+# html report
+htmlReport

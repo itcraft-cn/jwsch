@@ -1,0 +1,11 @@
+server:
+  port: 3000
+
+spring:
+  application:
+    name: jwsch-sample-webapp
+
+logging:
+  level:
+    cn.itcraft: DEBUG
+    org.springframework: INFO

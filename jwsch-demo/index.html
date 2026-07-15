@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EURUSD Price Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        .symbol {
+            font-size: 24px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .price-box {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin: 20px 0;
+        }
+        .bid, .ask {
+            padding: 20px 40px;
+            border-radius: 8px;
+            min-width: 150px;
+        }
+        .bid {
+            background: #16213e;
+            border: 2px solid #0f3460;
+        }
+        .ask {
+            background: #1a1a2e;
+            border: 2px solid #e94560;
+        }
+        .label {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .value {
+            font-size: 36px;
+            font-weight: bold;
+            font-family: 'Consolas', monospace;
+        }
+        .bid .value {
+            color: #4ecca3;
+        }
+        .ask .value {
+            color: #e94560;
+        }
+        .spread {
+            font-size: 18px;
+            color: #888;
+            margin: 20px 0;
+        }
+        .stats {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #666;
+        }
+        .fps {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .connected {
+            background: #1b4332;
+            color: #69db7c;
+        }
+        .disconnected {
+            background: #442726;
+            color: #f87171;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="symbol">EURUSD</div>
+        <div class="price-box">
+            <div class="bid">
+                <div class="label">BID</div>
+                <div class="value" id="bid">--.-----</div>
+            </div>
+            <div class="ask">
+                <div class="label">ASK</div>
+                <div class="value" id="ask">--.-----</div>
+            </div>
+        </div>
+        <div class="spread">Spread: <span id="spread">--</span></div>
+        <div class="status disconnected" id="status">Disconnected</div>
+        <div class="stats">
+            FPS: <span class="fps" id="fps">0</span> | 
+            Updates: <span id="count">0</span>
+        </div>
+    </div>
+
+    <script src="/jwsch.umd.js"></script>
+    <script>
+        const bidEl = document.getElementById('bid');
+        const askEl = document.getElementById('ask');
+        const spreadEl = document.getElementById('spread');
+        const fpsEl = document.getElementById('fps');
+        const countEl = document.getElementById('count');
+        const statusEl = document.getElementById('status');
+
+        let updateCount = 0;
+        let lastTime = performance.now();
+        let frames = 0;
+
+        const client = new Jwsch.Connection('ws://127.0.0.1:8080/ws');
+
+        client.onOpen(() => {
+            statusEl.textContent = 'Connected';
+            statusEl.className = 'status connected';
+            client.sendSubscribe('/topic/price', 0);
+        });
+
+        client.onClose(() => {
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'status disconnected';
+        });
+
+        client.onMessage((packet) => {
+            try {
+                const data = packet.getBodyAsJson();
+                
+                if (data && data.s === 'EURUSD') {
+                    bidEl.textContent = data.b.toFixed(5);
+                    askEl.textContent = data.a.toFixed(5);
+                    spreadEl.textContent = ((data.a - data.b) * 10000).toFixed(1) + ' pips';
+                    
+                    updateCount++;
+                    frames++;
+                }
+            } catch (e) {
+                console.error('Parse error:', e);
+            }
+        });
+
+        client.connect();
+
+        setInterval(() => {
+            const now = performance.now();
+            const delta = now - lastTime;
+            const fps = Math.round(frames * 1000 / delta);
+            fpsEl.textContent = fps;
+            countEl.textContent = updateCount;
+            frames = 0;
+            lastTime = now;
+        }, 1000);
+    </script>
+</body>
+</html>

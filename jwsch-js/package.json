@@ -1,0 +1,48 @@
+{
+  "name": "jwsch-js",
+  "version": "1.0.0",
+  "description": "JavaScript client for jwsch middleware platform",
+  "main": "lib/jwsch.umd.js",
+  "module": "lib/jwsch.esm.js",
+  "browser": "lib/jwsch.umd.js",
+  "files": [
+    "lib",
+    "src"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "jwsch",
+    "websocket",
+    "middleware",
+    "netty",
+    "realtime"
+  ],
+  "author": "itcraft",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-terser": "^0.4.4",
+    "babel-jest": "^30.3.0",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "rollup": "^4.9.6"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.cn/itcraft/jwsch-js.git"
+  }
+}
