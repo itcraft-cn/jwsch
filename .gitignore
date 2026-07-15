@@ -1,5 +1,6 @@
 # Maven target directories
 target/
+**/dependency-reduced-pom.xml
 
 # IDE files
 .idea/
@@ -37,6 +38,9 @@ dist/
 jwsch-sample/sample-webapp/src/main/resources/static/
 jwsch-sample/sample-webapp/frontend/dist/
 jwsch-js/lib/
+
+# Demo bundle (rollup output)
+jwsch-demo/*.umd.js
 
 # html report
 htmlReport
