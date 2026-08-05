@@ -10,12 +10,15 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 数据包编码器。
+ * Packet encoder for jwsch protocol.
  * 
- * <p>Netty ChannelHandler，将 {@link Packet} 编码为 ByteBuf 用于网络传输。
- * 编码顺序与协议格式一致，参见 {@link ProtocolConsts}。
+ * <p>Netty ChannelHandler that encodes {@link Packet} objects into ByteBuf for network transmission.
+ * Encoding order follows the protocol format defined in {@link ProtocolConsts}.
  * 
- * <p>使用零拷贝技术，避免 body 数据复制。
+ * <p>Uses zero-copy technique to avoid unnecessary body data copying.
+ * When writing body content, uses {@link ByteBuf#writeBytes(ByteBuf, int, int)} with 
+ * readerIndex and readableBytes to prevent moving the original buffer's readerIndex,
+ * allowing the same packet to be sent to multiple clients.
  */
 public final class PacketEncoder extends MessageToByteEncoder<Packet> {
     
@@ -25,7 +28,7 @@ public final class PacketEncoder extends MessageToByteEncoder<Packet> {
     protected void encode(ChannelHandlerContext ctx, Packet msg, ByteBuf out) {
         PacketHeader header = msg.getHeader();
         
-        // 写入固定头部
+        // Write fixed header
         out.writeBytes(ProtocolConsts.MAGIC);
         out.writeShort(header.getHeaderLength());
         out.writeInt(header.getBodyLength());
@@ -34,13 +37,13 @@ public final class PacketEncoder extends MessageToByteEncoder<Packet> {
         out.writeLong(header.getSourceId());
         out.writeLong(header.getTargetId());
         
-        // 写入变长 Topic（使用缓存的 topicBytes）
+        // Write variable-length Topic (using cached topicBytes)
         byte[] topicBytes = header.getTopicBytes();
         if (topicBytes != null && topicBytes.length > 0) {
             out.writeBytes(topicBytes);
         }
         
-        // 写入 Body（零拷贝：指定读取位置，不移动 readerIndex）
+        // Write Body (zero-copy: specify read position without moving readerIndex)
         ByteBuf bodyBuf = msg.getBodyBuf();
         if (bodyBuf != null && bodyBuf.isReadable()) {
             out.writeBytes(bodyBuf, bodyBuf.readerIndex(), bodyBuf.readableBytes());

@@ -1,17 +1,25 @@
-package cn.itcraft.jwsch.common.ssl;
-
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Arrays;
-
+/**
+ * SSL context factory for Netty.
+ *
+ * <p>Creates SslContext instances for server and client TLS configurations.
+ * Supports:
+ * <ul>
+ *   <li>Server certificates (PEM format)</li>
+ *   <li>Custom TLS protocols</li>
+ *   <li>Custom cipher suites</li>
+ *   <li>Classpath and filesystem certificate loading</li>
+ * </ul>
+ *
+ * <p>Usage example:
+ * <pre>
+ * SslConfig config = SslConfig.builder()
+ *     .enabled(true)
+ *     .certFilePath("server.crt")
+ *     .keyFilePath("server.key")
+ *     .build();
+ * SslContext sslContext = SslContextFactory.createServerContext(config);
+ * </pre>
+ */
 public final class SslContextFactory {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(SslContextFactory.class);
@@ -19,6 +27,14 @@ public final class SslContextFactory {
     private SslContextFactory() {
     }
     
+    /**
+     * Creates server SslContext from configuration.
+     *
+     * @param config SSL configuration
+     * @return SslContext for server, or null if SSL disabled
+     * @throws SSLException if SSL context creation fails
+     * @throws IllegalArgumentException if certificate files not found
+     */
     public static SslContext createServerContext(SslConfig config) throws SSLException {
         if (config == null || !config.isEnabled()) {
             return null;
@@ -46,6 +62,13 @@ public final class SslContextFactory {
         return sslContext;
     }
     
+    /**
+     * Creates client SslContext from configuration.
+     *
+     * @param config SSL configuration
+     * @return SslContext for client, or null if SSL disabled
+     * @throws SSLException if SSL context creation fails
+     */
     public static SslContext createClientContext(SslConfig config) throws SSLException {
         if (config == null || !config.isEnabled()) {
             return null;
@@ -69,6 +92,15 @@ public final class SslContextFactory {
         return sslContext;
     }
     
+    /**
+     * Gets InputStream for certificate file.
+     *
+     * <p>First checks filesystem, then classpath.
+     *
+     * @param filePath certificate file path
+     * @return InputStream for file
+     * @throws IllegalArgumentException if file not found
+     */
     private static InputStream getFileInputStream(String filePath) {
         if (filePath == null || filePath.isEmpty()) {
             throw new IllegalArgumentException("File path cannot be null or empty");

@@ -9,12 +9,12 @@ import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 数据包写入工具类。
+ * Packet writer utility class.
  * 
- * <p>提供静态方法将 {@link Packet} 编码为 ByteBuf。
- * 与 {@link PacketEncoder} 功能相同，但可在任意位置调用，无需 Netty Pipeline。
+ * <p>Provides static methods to encode {@link Packet} objects into ByteBuf.
+ * Functionally similar to {@link PacketEncoder} but can be called anywhere without Netty Pipeline.
  * 
- * <p>使用零拷贝技术，支持同一个 Packet 发送给多个客户端。
+ * <p>Uses zero-copy technique, supporting sending the same Packet to multiple clients.
  */
 public final class PacketWriter {
     
@@ -22,14 +22,14 @@ public final class PacketWriter {
     }
     
     /**
-     * 将 Packet 编码为 ByteBuf。
+     * Encodes Packet into ByteBuf.
      * 
-     * <p>使用零拷贝技术，从指定位置读取 Body 数据，不移动 readerIndex，
-     * 允许同一个 Body 发送给多个客户端。
+     * <p>Uses zero-copy technique: reads body data from specified position without moving readerIndex,
+     * allowing the same body to be sent to multiple clients.
      * 
-     * @param packet  待编码的数据包
-     * @param allocator ByteBuf 分配器
-     * @return 编码后的 ByteBuf，调用者负责释放
+     * @param packet      packet to encode
+     * @param allocator   ByteBuf allocator
+     * @return encoded ByteBuf, caller is responsible for releasing
      */
     public static ByteBuf write(Packet packet, ByteBufAllocator allocator) {
         PacketHeader header = packet.getHeader();
@@ -40,7 +40,7 @@ public final class PacketWriter {
         
         ByteBuf buf = allocator.buffer(totalLength);
         
-        // 写入固定头部
+        // Write fixed header
         buf.writeByte(ProtocolConsts.MAGIC[0]);
         buf.writeByte(ProtocolConsts.MAGIC[1]);
         buf.writeShort(header.getHeaderLength());
@@ -50,13 +50,13 @@ public final class PacketWriter {
         buf.writeLong(header.getSourceId());
         buf.writeLong(header.getTargetId());
         
-        // 写入变长 Topic（使用缓存的 topicBytes）
+        // Write variable-length Topic (using cached topicBytes)
         byte[] topicBytes = header.getTopicBytes();
         if (topicBytes != null) {
             buf.writeBytes(topicBytes);
         }
         
-        // 写入 Body（零拷贝：指定读取位置，不移动 readerIndex）
+        // Write Body (zero-copy: read from specified position without moving readerIndex)
         if (body != null && body.readableBytes() > 0) {
             buf.writeBytes(body, body.readerIndex(), bodyLength);
         }
@@ -65,13 +65,14 @@ public final class PacketWriter {
     }
     
     /**
-     * 将 Packet 编码为字节数组。
+     * Encodes Packet into byte array.
      * 
-     * <p>用于广播场景：编码一次，分发给多个订阅者时使用 {@link Unpooled#wrappedBuffer(byte[])} 
-     * 创建堆缓冲区，避免在扇出过程中持有直接内存引用。
+     * <p>Used for broadcast scenarios: encode once, then use {@link Unpooled#wrappedBuffer(byte[])}
+     * to create heap buffers for distribution to multiple subscribers, avoiding holding direct memory
+     * references during fan-out.
      * 
-     * @param packet 待编码的数据包
-     * @return 编码后的字节数组
+     * @param packet packet to encode
+     * @return encoded byte array
      */
     public static byte[] writeToBytes(Packet packet) {
         PacketHeader header = packet.getHeader();
@@ -107,20 +108,20 @@ public final class PacketWriter {
     }
     
     /**
-     * 将 Packet 编码为池化 Direct ByteBuf。
+     * Encodes Packet into pooled Direct ByteBuf.
      * 
-     * <p>用于广播场景：编码一次，通过 retainedSlice() 分发给多个订阅者，
-     * 避免创建多个 ByteBuf wrapper，减少内存分配和 GC。
+     * <p>Used for broadcast scenarios: encode once, distribute to multiple subscribers via retainedSlice(),
+     * avoiding creating multiple ByteBuf wrappers, reducing memory allocation and GC.
      * 
-     * <p>内存优化：
+     * <p>Memory optimization:
      * <pre>
-     * 原方案：byte[] + Unpooled.wrappedBuffer() × N → N 个非池化 HeapByteBuf
-     * 新方案：Pooled Direct ByteBuf + retainedSlice() × N → N 个轻量 slice，共享底层内存
+     * Old approach: byte[] + Unpooled.wrappedBuffer() × N → N non-pooled HeapByteBuf
+     * New approach: Pooled Direct ByteBuf + retainedSlice() × N → N lightweight slices sharing underlying memory
      * </pre>
      * 
-     * @param packet 待编码的数据包
-     * @param allocator ByteBuf 分配器（推荐使用 PooledByteBufAllocator.DEFAULT）
-     * @return 编码后的池化 Direct ByteBuf，调用者负责释放
+     * @param packet      packet to encode
+     * @param allocator   ByteBuf allocator (recommended: PooledByteBufAllocator.DEFAULT)
+     * @return encoded pooled Direct ByteBuf, caller is responsible for releasing
      */
     public static ByteBuf writeToPooledDirectBuffer(Packet packet, ByteBufAllocator allocator) {
         PacketHeader header = packet.getHeader();

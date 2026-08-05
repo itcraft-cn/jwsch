@@ -14,35 +14,33 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
- * 数据包解码器。
+ * Packet decoder for jwsch protocol.
  * 
- * <p>Netty ChannelHandler，将 ByteBuf 解码为 {@link Packet} 对象。
- * 支持粘包拆包处理，使用零拷贝技术避免 Body 数据复制。
+ * <p>Netty ChannelHandler that decodes ByteBuf into {@link Packet} objects.
+ * Handles TCP stream fragmentation and reassembly, using zero-copy technique to avoid body data copying.
  * 
- * <p>使用 COMPOSITE_CUMULATOR 避免缓冲区复制，
- * 并限制累积缓冲区最大大小为 2MB，
- * 防止慢消费者或背压场景下的内存无限增长。
+ * <p>Uses COMPOSITE_CUMULATOR to avoid buffer copying and limits cumulative buffer size to 2MB
+ * to prevent unbounded memory growth in slow consumer or backpressure scenarios.
  */
 public final class PacketDecoder extends ByteToMessageDecoder {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketDecoder.class);
     
     /**
-     * 最大累积缓冲区大小（2MB）。
+     * Maximum cumulative buffer size (2MB).
      * 
-     * <p>超过此大小表示解码器处理跟不上输入速率，
-     * 此时关闭通道以避免内存无限增长。
+     * <p>Exceeding this size indicates decoder cannot keep up with input rate,
+     * at which point the channel is closed to prevent unbounded memory growth.
      */
     private static final int MAX_CUMULATION_BYTES = 2 * 1024 * 1024;
     
     /**
-     * 带大小限制的复合累积器。
+     * Composite cumulator with size limitation.
      * 
-     * <p>使用 COMPOSITE_CUMULATOR 避免缓冲区复制，
-     * 同时在累积前检查总大小是否超过限制。
+     * <p>Uses COMPOSITE_CUMULATOR to avoid buffer copying while checking total size before accumulation.
      * 
-     * <p>当大小超过限制时抛出 TooLongFrameException，
-     * ByteToMessageDecoder 会捕获并释放缓冲区，然后关闭通道。
+     * <p>When size exceeds limit, throws TooLongFrameException,
+     * which ByteToMessageDecoder catches, releases buffers, and closes the channel.
      */
     private static final Cumulator LIMITED_COMPOSITE_CUMULATOR = (allocator, cumulation, input) -> {
         int totalSize = (cumulation != null ? cumulation.readableBytes() : 0) + input.readableBytes();

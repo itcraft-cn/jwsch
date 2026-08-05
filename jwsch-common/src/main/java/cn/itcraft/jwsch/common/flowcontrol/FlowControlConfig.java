@@ -1,9 +1,9 @@
 package cn.itcraft.jwsch.common.flowcontrol;
 
 /**
- * 流量控制配置。
+ * Flow control configuration.
  *
- * <p>使用Builder模式构建不可变配置：
+ * <p>Uses Builder pattern to create immutable configuration:
  * <pre>
  * FlowControlConfig config = FlowControlConfig.builder()
  *     .inboundEnabled(true)
@@ -13,23 +13,38 @@ package cn.itcraft.jwsch.common.flowcontrol;
  */
 public final class FlowControlConfig {
     
+    /** Whether inbound rate limiting is enabled */
     private final boolean inboundEnabled;
+    /** Maximum tokens per second for inbound traffic */
     private final int maxTokensPerSecond;
+    /** Burst size in tokens for inbound traffic */
     private final int burstSize;
+    /** Strategy for handling inbound overflow */
     private final OverflowStrategy inboundOverflowStrategy;
     
+    /** Whether global backpressure is enabled */
     private final boolean globalBackpressureEnabled;
+    /** Global memory usage threshold to trigger backpressure (0.0-1.0) */
     private final double globalTriggerThreshold;
+    /** Global memory usage threshold to release backpressure (0.0-1.0) */
     private final double globalReleaseThreshold;
+    /** Cooldown period in milliseconds before releasing global backpressure */
     private final long globalReleaseCooldownMs;
     
+    /** Whether per-topic backpressure is enabled */
     private final boolean topicBackpressureEnabled;
+    /** Per-topic memory usage threshold to trigger backpressure (0.0-1.0) */
     private final double topicTriggerThreshold;
+    /** Per-topic memory usage threshold to release backpressure (0.0-1.0) */
     private final double topicReleaseThreshold;
     
+    /** Whether outbound queue limiting is enabled */
     private final boolean outboundEnabled;
+    /** Maximum outbound queue size per connection */
     private final int maxQueueSize;
+    /** Queue size threshold to disconnect client */
     private final int disconnectThreshold;
+    /** Strategy for handling outbound overflow */
     private final OverflowStrategy outboundOverflowStrategy;
     
     private FlowControlConfig(Builder builder) {

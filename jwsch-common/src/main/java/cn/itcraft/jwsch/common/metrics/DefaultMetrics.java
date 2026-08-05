@@ -1,14 +1,19 @@
-package cn.itcraft.jwsch.common.metrics;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
+/**
+ * Default thread-safe implementation of {@link Metrics}.
+ * 
+ * <p>Uses {@link ConcurrentHashMap} for metric storage and {@link AtomicLong}
+ * for atomic operations. All methods are thread-safe.
+ * 
+ * <p>Metrics are lazily created on first access.
+ */
 public final class DefaultMetrics implements Metrics {
     
     private final Map<String, AtomicCounter> counters;
     private final Map<String, AtomicGauge> gauges;
     
+    /**
+     * Creates a new DefaultMetrics instance with empty metric maps.
+     */
     public DefaultMetrics() {
         this.counters = new ConcurrentHashMap<>();
         this.gauges = new ConcurrentHashMap<>();
@@ -64,6 +69,9 @@ public final class DefaultMetrics implements Metrics {
         return gauges.computeIfAbsent(name, k -> new AtomicGauge());
     }
     
+    /**
+     * Thread-safe counter implementation using AtomicLong.
+     */
     private static final class AtomicCounter implements Counter {
         private final AtomicLong value = new AtomicLong(0);
         
@@ -98,6 +106,9 @@ public final class DefaultMetrics implements Metrics {
         }
     }
     
+    /**
+     * Thread-safe gauge implementation using AtomicLong.
+     */
     private static final class AtomicGauge implements Gauge {
         private final AtomicLong value = new AtomicLong(0);
         

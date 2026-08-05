@@ -1,5 +1,18 @@
-package cn.itcraft.jwsch.common.exception;
-
+/**
+ * Error codes for jwsch protocol and operations.
+ * 
+ * <p>Error codes are categorized by range:
+ * <ul>
+ *   <li>0: Success</li>
+ *   <li>1-99: Protocol errors (invalid format, length, etc.)</li>
+ *   <li>1000-1999: Connection errors</li>
+ *   <li>2000-2999: Service and routing errors</li>
+ *   <li>3000-3999: Registry and discovery errors</li>
+ *   <li>9000-9999: Internal system errors</li>
+ * </ul>
+ * 
+ * <p>Error codes are transmitted in packet headers as 2-byte short values.
+ */
 public enum ErrorCode {
     
     SUCCESS(0, "Success"),
@@ -42,19 +55,37 @@ public enum ErrorCode {
     private final short code;
     private final String desc;
     
+    /**
+     * Creates a new ErrorCode enum instance.
+     * 
+     * @param code error code (will be cast to short)
+     * @param desc human-readable description
+     */
     ErrorCode(int code, String desc) {
         this.code = (short) code;
         this.desc = desc;
     }
     
+    /**
+     * Returns the error code as short value.
+     */
     public short getCode() {
         return code;
     }
     
+    /**
+     * Returns the human-readable description.
+     */
     public String getDesc() {
         return desc;
     }
     
+    /**
+     * Looks up ErrorCode by numeric code.
+     * 
+     * @param code error code to find
+     * @return matching ErrorCode or null if not found
+     */
     public static ErrorCode fromCode(short code) {
         for (ErrorCode errorCode : values()) {
             if (errorCode.code == code) {

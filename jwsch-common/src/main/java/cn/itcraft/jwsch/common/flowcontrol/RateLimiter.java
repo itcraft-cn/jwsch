@@ -1,18 +1,18 @@
 package cn.itcraft.jwsch.common.flowcontrol;
 
 /**
- * 令牌桶限速器。
+ * Token bucket rate limiter.
  *
- * <p>基于时间的令牌补充，无锁设计（单EventLoop使用）。
+ * <p>Time-based token replenishment, lock-free design (for single EventLoop usage).
  * 
- * <p>工作原理：
+ * <p>How it works:
  * <pre>
- * 1. 桶容量为 maxTokens
- * 2. 每 refillIntervalNanos 补充 refillTokens 个令牌
- * 3. tryAcquire() 消耗令牌，无令牌时返回 false
+ * 1. Bucket capacity is maxTokens
+ * 2. Every refillIntervalNanos, refillTokens tokens are added
+ * 3. tryAcquire() consumes tokens, returns false if insufficient tokens
  * </pre>
  *
- * <p>配置示例（10000 msg/s，允许短时突发12000）：
+ * <p>Configuration example (10000 msg/s, allowing short burst of 12000):
  * <pre>
  * RateLimiter limiter = new RateLimiter(12000, 1000, 100_000_000L);
  * </pre>
@@ -26,6 +26,14 @@ public final class RateLimiter {
     private long availableTokens;
     private long lastRefillNanos;
     
+    /**
+     * Creates a RateLimiter with specified parameters.
+     * 
+     * @param maxTokens maximum bucket capacity
+     * @param refillTokens tokens added per refill interval
+     * @param refillIntervalNanos refill interval in nanoseconds
+     * @throws IllegalArgumentException if any parameter <= 0
+     */
     public RateLimiter(long maxTokens, long refillTokens, long refillIntervalNanos) {
         if (maxTokens <= 0) {
             throw new IllegalArgumentException("maxTokens must be positive");
@@ -45,19 +53,19 @@ public final class RateLimiter {
     }
     
     /**
-     * 尝试获取令牌。
+     * Attempts to acquire one token.
      *
-     * @return true 表示获取成功，false 表示无可用令牌
+     * @return true if token acquired, false if insufficient tokens
      */
     public boolean tryAcquire() {
         return tryAcquire(1);
     }
     
     /**
-     * 尝试获取指定数量令牌。
+     * Attempts to acquire specified number of tokens.
      *
-     * @param permits 需要的令牌数
-     * @return true 表示获取成功，false 表示无可用令牌
+     * @param permits number of tokens required
+     * @return true if tokens acquired, false if insufficient tokens
      */
     public boolean tryAcquire(int permits) {
         if (permits <= 0) {
@@ -75,7 +83,7 @@ public final class RateLimiter {
     }
     
     /**
-     * 获取当前可用令牌数。
+     * Gets current available token count.
      */
     public long getAvailableTokens() {
         refill();
@@ -83,7 +91,7 @@ public final class RateLimiter {
     }
     
     /**
-     * 获取当前速率（令牌/秒）。
+     * Gets current rate (tokens per second).
      */
     public double getCurrentRate() {
         return (double) refillTokens * 1_000_000_000L / refillIntervalNanos;
@@ -103,11 +111,11 @@ public final class RateLimiter {
     }
     
     /**
-     * 从速率创建限速器。
+     * Creates a RateLimiter from rate per second.
      *
-     * @param ratePerSecond 每秒令牌数
-     * @param burstSize 桶容量（允许突发）
-     * @return 限速器实例
+     * @param ratePerSecond tokens per second
+     * @param burstSize bucket capacity (allows burst)
+     * @return RateLimiter instance
      */
     public static RateLimiter create(int ratePerSecond, int burstSize) {
         long refillIntervalNanos = 1_000_000_000L;

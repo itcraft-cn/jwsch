@@ -1,17 +1,41 @@
-package cn.itcraft.jwsch.common.cache;
-
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-
+/**
+ * Guava-based cache implementation.
+ *
+ * <p>Uses Google Guava CacheBuilder for feature-rich caching:
+ * <ul>
+ *   <li>Size-based eviction</li>
+ *   <li>Time-based expiration (write/access)</li>
+ *   <li>Automatic refresh</li>
+ *   <li>Statistics collection</li>
+ *   <li>Asynchronous loading</li>
+ * </ul>
+ *
+ * <p>Two modes:
+ * <ul>
+ *   <li>Simple cache: Basic get/put operations</li>
+ *   <li>Loading cache: Automatic loading via CacheLoader</li>
+ * </ul>
+ *
+ * <p>Usage example:
+ * <pre>
+ * CacheConfig config = CacheConfig.builder()
+ *     .maximumSize(10000)
+ *     .expireAfterWrite(10, TimeUnit.MINUTES)
+ *     .recordStats(true)
+ *     .build();
+ * Cache<String, User> cache = new GuavaCache<>(config);
+ * </pre>
+ */
 public final class GuavaCache<K, V> implements Cache<K, V> {
     
     private final com.google.common.cache.Cache<K, V> cache;
     private final LoadingCache<K, V> loadingCache;
     
+    /**
+     * Creates a simple Guava cache with configuration.
+     *
+     * @param config cache configuration
+     */
     public GuavaCache(CacheConfig config) {
         CacheBuilder<Object, Object> builder = CacheBuilder.newBuilder()
             .initialCapacity(config.getInitialCapacity())
@@ -46,6 +70,15 @@ public final class GuavaCache<K, V> implements Cache<K, V> {
         this.loadingCache = loadingCache;
     }
     
+    /**
+     * Creates a loading cache with CacheLoader.
+     *
+     * @param config cache configuration
+     * @param loader CacheLoader for loading missing entries
+     * @return GuavaCache instance
+     * @param <K> key type
+     * @param <V> value type
+     */
     public static <K, V> GuavaCache<K, V> createLoadingCache(
             CacheConfig config, 
             cn.itcraft.jwsch.common.cache.CacheLoader<K, V> loader) {

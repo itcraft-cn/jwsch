@@ -6,15 +6,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 /**
- * 数据包头部。
+ * Packet header.
  * 
- * <p>头部字段布局（字节偏移）：
+ * <p>Header field layout (byte offsets):
  * <pre>
  * | Magic(0-1) | HeaderLen(2-3) | BodyLen(4-7) | Cmd(8) | ErrCode(9-10) |
  * | SrcId(11-18) | TgtId(19-26) | Topic(27-N) |
  * </pre>
  * 
- * <p>使用 Builder 模式创建：
+ * <p>Use Builder pattern to create:
  * <pre>
  * PacketHeader header = new PacketHeader.Builder()
  *     .command(Command.PUSH)
@@ -25,21 +25,21 @@ import java.util.Objects;
  */
 public final class PacketHeader {
     
-    /** 头部长度（固定27字节 + Topic变长） */
+    /** Header length (fixed 27 bytes + variable topic length) */
     private final short headerLength;
-    /** 包体长度 */
+    /** Body length */
     private final int bodyLength;
-    /** 命令类型，参见 {@link Command} */
+    /** Command type, see {@link Command} */
     private final byte command;
-    /** 错误码，参见 {@link ErrorCode} */
+    /** Error code, see {@link ErrorCode} */
     private final short errorCode;
-    /** 源连接ID */
+    /** Source connection ID */
     private final long sourceId;
-    /** 目标连接ID */
+    /** Target connection ID */
     private final long targetId;
-    /** Topic，可为 null */
+    /** Topic, can be null */
     private final String topic;
-    /** Topic 的 ASCII 字节缓存 */
+    /** Topic ASCII byte cache */
     private final byte[] topicBytes;
     
     private PacketHeader(Builder builder) {
@@ -55,42 +55,84 @@ public final class PacketHeader {
             (topicBytes != null ? topicBytes.length : 0));
     }
     
+    /**
+     * Returns the total header length in bytes.
+     * 
+     * <p>Includes fixed header (27 bytes) plus variable-length topic.
+     */
     public short getHeaderLength() {
         return headerLength;
     }
     
+    /**
+     * Returns the body length in bytes.
+     * 
+     * <p>0 indicates no body.
+     */
     public int getBodyLength() {
         return bodyLength;
     }
     
+    /**
+     * Returns the command byte.
+     */
     public byte getCommand() {
         return command;
     }
     
+    /**
+     * Returns the error code.
+     */
     public short getErrorCode() {
         return errorCode;
     }
     
+    /**
+     * Returns the source connection ID.
+     */
     public long getSourceId() {
         return sourceId;
     }
     
+    /**
+     * Returns the target connection ID.
+     */
     public long getTargetId() {
         return targetId;
     }
     
+    /**
+     * Returns the topic string.
+     * 
+     * @return topic string or null if no topic
+     */
     public String getTopic() {
         return topic;
     }
     
+    /**
+     * Returns the topic bytes cached for efficient encoding.
+     * 
+     * <p>Used by {@link PacketWriter} to avoid repeated encoding.
+     * Returns null if topic is null.
+     */
     public byte[] getTopicBytes() {
         return topicBytes;
     }
     
+    /**
+     * Checks if this header indicates success (errorCode == SUCCESS).
+     */
     public boolean isSuccess() {
         return errorCode == ErrorCode.SUCCESS.getCode();
     }
     
+    /**
+     * Builder for PacketHeader.
+     * 
+     * <p>Provides fluent API for constructing PacketHeader instances.
+     * Validates command and topic length on build().
+     */
     public static final class Builder {
         private byte command;
         private short errorCode;
@@ -99,41 +141,71 @@ public final class PacketHeader {
         private String topic;
         private int bodyLength;
         
+        /**
+         * Sets the command byte.
+         */
         public Builder command(byte command) {
             this.command = command;
             return this;
         }
         
+        /**
+         * Sets the error code as short value.
+         */
         public Builder errorCode(short errorCode) {
             this.errorCode = errorCode;
             return this;
         }
         
+        /**
+         * Sets the error code using ErrorCode enum.
+         */
         public Builder errorCode(ErrorCode errorCode) {
             this.errorCode = errorCode.getCode();
             return this;
         }
         
+        /**
+         * Sets the source connection ID.
+         */
         public Builder sourceId(long sourceId) {
             this.sourceId = sourceId;
             return this;
         }
         
+        /**
+         * Sets the target connection ID.
+         */
         public Builder targetId(long targetId) {
             this.targetId = targetId;
             return this;
         }
         
+        /**
+         * Sets the topic string.
+         * 
+         * @param topic topic string (ASCII only, max {@link ProtocolConsts#MAX_TOPIC_LENGTH} bytes)
+         */
         public Builder topic(String topic) {
             this.topic = topic;
             return this;
         }
         
+        /**
+         * Sets the body length.
+         * 
+         * @param bodyLength body length in bytes (0 for no body)
+         */
         public Builder bodyLength(int bodyLength) {
             this.bodyLength = bodyLength;
             return this;
         }
         
+        /**
+         * Builds the PacketHeader instance.
+         * 
+         * @throws IllegalArgumentException if command is invalid or topic length exceeds limit
+         */
         public PacketHeader build() {
             if (!Command.isValid(command)) {
                 throw new IllegalArgumentException("Invalid command: " + command);
