@@ -15,6 +15,21 @@ package cn.itcraft.jwsch.bench.latency;
  */
 public final class LatencyPublisherMain {
     
+    /**
+     * 延迟测试发布者的主入口方法。
+     * 
+     * <p>解析命令行参数，创建 LatencyPublisher 实例并启动测试。
+     * 测试就绪后会打印 "PUBLISHER_READY" 标记。
+     * 
+     * @param args 命令行参数：
+     *             --host <host>         服务器主机
+     *             --tcpPort <port>      服务器 TCP 端口
+     *             --topic <topic>       主题
+     *             --interval <micros>   发送间隔（微秒）
+     *             --payloadSize <bytes> 负载大小（字节）
+     *             --duration <minutes>  运行时长（0表示无限）
+     *             --help, -h            显示帮助信息
+     */
     public static void main(String[] args) {
         String host = "localhost";
         int tcpPort = 9090;
@@ -74,6 +89,16 @@ public final class LatencyPublisherMain {
         System.out.println("[PUB] Shutdown complete.");
     }
     
+    /**
+     * 打印启动横幅信息。
+     * 
+     * @param host        服务器主机
+     * @param tcpPort     TCP 端口
+     * @param topic       主题
+     * @param interval    发送间隔（微秒）
+     * @param payloadSize 负载大小（字节）
+     * @param duration    运行时长（分钟）
+     */
     private static void printBanner(String host, int tcpPort, String topic, 
                                     long interval, int payloadSize, int duration) {
         System.out.println("=== Latency Test Publisher ===");
@@ -86,6 +111,9 @@ public final class LatencyPublisherMain {
         System.out.println();
     }
     
+    /**
+     * 打印帮助信息。
+     */
     private static void printHelp() {
         System.out.println("Usage: java -Dio.netty.leakDetection.level=disabled -cp jwsch-bench.jar cn.itcraft.jwsch.bench.latency.LatencyPublisherMain [options]");
         System.out.println();

@@ -26,6 +26,14 @@ public final class LatencySubscriber {
     private final LatencyTracker latencyTracker;
     private final int id;
     
+    /**
+     * 创建延迟测试订阅者实例。
+     * 
+     * @param id             订阅者ID
+     * @param wsUrl          WebSocket URL
+     * @param topic          订阅主题
+     * @param latencyTracker 延迟追踪器
+     */
     public LatencySubscriber(int id, String wsUrl, String topic, LatencyTracker latencyTracker) {
         this.id = id;
         this.topic = topic;
@@ -33,6 +41,11 @@ public final class LatencySubscriber {
         this.client = new WebSocketClient(wsUrl);
     }
     
+    /**
+     * 启动订阅者，连接 WebSocket 并发送订阅请求。
+     * 
+     * @throws Exception 如果连接失败或订阅失败
+     */
     public void start() throws Exception {
         client.connect();
         
@@ -48,6 +61,11 @@ public final class LatencySubscriber {
         System.out.println("Subscriber #" + id + " connected and subscribed to " + topic);
     }
     
+    /**
+     * 处理接收到的消息。
+     * 
+     * @param content 消息内容 ByteBuf
+     */
     private void handleMessage(ByteBuf content) {
         if (!isValidPacket(content)) {
             return;
@@ -56,6 +74,11 @@ public final class LatencySubscriber {
         recordLatency(content);
     }
     
+    /**
+     * 记录消息延迟。
+     * 
+     * @param content 消息内容 ByteBuf
+     */
     private void recordLatency(ByteBuf content) {
         int headerLength = content.getShort(2);
         int bodyStart = headerLength;
@@ -73,6 +96,9 @@ public final class LatencySubscriber {
         }
     }
     
+    /**
+     * 发送订阅请求到服务器。
+     */
     private void sendSubscribe() {
         byte[] topicBytes = topic.getBytes(StandardCharsets.US_ASCII);
         int headerLength = 27 + topicBytes.length;
@@ -92,6 +118,12 @@ public final class LatencySubscriber {
         client.sendBinary(buf);
     }
     
+    /**
+     * 验证数据包是否有效。
+     * 
+     * @param buf 待验证的 ByteBuf
+     * @return true 如果是有效的 PUSH 或 BROADCAST 数据包
+     */
     private boolean isValidPacket(ByteBuf buf) {
         if (buf.readableBytes() < 27) {
             return false;
@@ -107,6 +139,9 @@ public final class LatencySubscriber {
         return cmd == CMD_PUSH || cmd == CMD_BROADCAST;
     }
     
+    /**
+     * 停止订阅者，关闭 WebSocket 连接。
+     */
     public void stop() {
         client.close();
     }

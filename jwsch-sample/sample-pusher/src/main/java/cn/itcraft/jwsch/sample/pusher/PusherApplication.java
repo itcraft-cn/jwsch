@@ -1,3 +1,19 @@
+/**
+ * 示例消息推送器应用入口。
+ * 
+ * <p>该应用定期向指定的主题推送消息，用于演示 jwsch 的消息发布功能。
+ * 
+ * <p>使用 Apache Commons CLI 解析命令行参数，支持配置目标服务器、端口、主题、
+ * 推送间隔和消息内容。
+ * 
+ * <p>使用示例：
+ * <pre>
+ * java -jar sample-pusher.jar --host localhost --port 9090 --topic /topic/news --interval 5000 --message "Hello World"
+ * </pre>
+ * 
+ * @author itcraft
+ * @since 1.0
+ */
 package cn.itcraft.jwsch.sample.pusher;
 
 import cn.itcraft.jwsch.cli.client.TcpClient;
@@ -26,6 +42,20 @@ public class PusherApplication {
     private static final String DEFAULT_TOPIC = "/topic/news";
     private static final int DEFAULT_INTERVAL = 5000;
 
+    /**
+     * 消息推送器的主入口方法。
+     * 
+     * <p>解析命令行参数，创建 TCP 客户端和消息推送器，定时执行连接和推送任务。
+     * 
+     * @param args 命令行参数，支持以下选项：
+     *             --host <host>       服务器主机
+     *             --port <port>       服务器端口
+     *             --topic <topic>     推送主题
+     *             --interval <ms>     推送间隔（毫秒）
+     *             --message <message> 推送消息内容
+     *             --help              显示帮助信息
+     * @throws Exception 如果启动失败
+     */
     public static void main(String[] args) throws Exception {
         Options options = createOptions();
 
@@ -97,6 +127,11 @@ public class PusherApplication {
         }
     }
 
+    /**
+     * 创建命令行选项定义。
+     * 
+     * @return 命令行选项
+     */
     private static Options createOptions() {
         Options options = new Options();
         options.addOption("h", "host", true, "Server host (default: localhost)");
@@ -108,11 +143,21 @@ public class PusherApplication {
         return options;
     }
 
+    /**
+     * 打印帮助信息。
+     * 
+     * @param options 命令行选项
+     */
     private static void printHelp(Options options) {
         HelpFormatter formatter = new HelpFormatter();
         formatter.printHelp("java -jar sample-pusher.jar", options);
     }
 
+    /**
+     * 创建 TCP 客户端实例。
+     * 
+     * @return TCP 客户端
+     */
     private static TcpClient createClient() {
         ClientConfig config = new ClientConfig();
         config.setEnabled(true);

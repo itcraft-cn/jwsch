@@ -21,10 +21,18 @@ public final class LatencyTracker {
     private final AtomicLong min = new AtomicLong(Long.MAX_VALUE);
     private final AtomicLong max = new AtomicLong(Long.MIN_VALUE);
 
+    /**
+     * 创建延迟统计器实例。
+     */
     public LatencyTracker() {
         samples = new long[INITIAL_CAPACITY];
     }
 
+    /**
+     * 记录一个延迟样本。
+     * 
+     * @param latencyNanos 延迟时间（纳秒）
+     */
     public void record(long latencyNanos) {
         long idx = writeIndex.getAndIncrement();
 
@@ -54,6 +62,11 @@ public final class LatencyTracker {
         }
     }
 
+    /**
+     * 扩展样本数组容量。
+     * 
+     * @param requiredCapacity 所需的最小容量
+     */
     private synchronized void grow(int requiredCapacity) {
         if (requiredCapacity <= samples.length) {
             return;
@@ -62,6 +75,11 @@ public final class LatencyTracker {
         samples = Arrays.copyOf(samples, newCapacity);
     }
 
+    /**
+     * 输出最终的延迟统计结果。
+     * 
+     * <p>包括样本总数、平均值、最小值、最大值和各百分位数（P50/P90/P95/P99）。
+     */
     public void reportFinal() {
         long count = writeIndex.get();
         if (count == 0) {
@@ -96,6 +114,13 @@ public final class LatencyTracker {
         System.out.println("P99: " + String.format("%.2f", p99Micros) + " μs");
     }
 
+    /**
+     * 计算百分位数。
+     * 
+     * @param sorted 已排序的样本数组
+     * @param percentile 百分位数（0-100）
+     * @return 对应百分位数的延迟值（纳秒）
+     */
     private long getPercentile(long[] sorted, int percentile) {
         if (sorted.length == 0) {
             return 0;
@@ -107,19 +132,39 @@ public final class LatencyTracker {
         return sorted[index];
     }
 
+    /**
+     * 获取已记录的样本总数。
+     * 
+     * @return 样本总数
+     */
     public long getCount() {
         return writeIndex.get();
     }
 
+    /**
+     * 获取延迟总和。
+     * 
+     * @return 所有样本的延迟总和（纳秒）
+     */
     public long getSum() {
         return sum.sum();
     }
 
+    /**
+     * 获取最小延迟。
+     * 
+     * @return 最小延迟（纳秒），如果没有样本返回0
+     */
     public long getMin() {
         long v = min.get();
         return v == Long.MAX_VALUE ? 0 : v;
     }
 
+    /**
+     * 获取最大延迟。
+     * 
+     * @return 最大延迟（纳秒），如果没有样本返回0
+     */
     public long getMax() {
         long v = max.get();
         return v == Long.MIN_VALUE ? 0 : v;

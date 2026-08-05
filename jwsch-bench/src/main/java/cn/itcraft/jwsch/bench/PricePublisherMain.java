@@ -12,6 +12,17 @@ import java.util.concurrent.CountDownLatch;
  */
 public final class PricePublisherMain {
     
+    /**
+     * 价格发布者的主入口方法。
+     * 
+     * <p>解析命令行参数，创建 PricePublisher 实例并启动价格发布。
+     * 
+     * @param args 命令行参数：
+     *             --host <host>     服务器主机
+     *             --port <port>     服务器端口
+     *             --interval <ms>   发送间隔（毫秒）
+     * @throws Exception 如果启动失败
+     */
     public static void main(String[] args) throws Exception {
         String host = "localhost";
         int port = 9090;

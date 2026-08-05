@@ -15,6 +15,21 @@ package cn.itcraft.jwsch.bench.latency;
  */
 public final class LatencyTestMain {
     
+    /**
+     * 延迟测试的主入口方法。
+     * 
+     * <p>启动一个发布者和一个订阅者，测量端到端延迟并输出统计结果。
+     * 
+     * @param args 命令行参数：
+     *             --host <host>         服务器主机
+     *             --tcpPort <port>      服务器 TCP 端口
+     *             --wsUrl <url>         WebSocket URL
+     *             --topic <topic>       主题
+     *             --interval <micros>   发送间隔（微秒）
+     *             --payloadSize <bytes> 负载大小（字节）
+     *             --duration <minutes>  运行时长（分钟）
+     *             --help, -h            显示帮助信息
+     */
     public static void main(String[] args) {
         String host = "localhost";
         int tcpPort = 9090;
@@ -86,6 +101,17 @@ public final class LatencyTestMain {
         System.out.println("[TEST] Shutdown complete.");
     }
     
+    /**
+     * 打印启动横幅信息。
+     * 
+     * @param host        服务器主机
+     * @param tcpPort     TCP 端口
+     * @param wsUrl       WebSocket URL
+     * @param topic       主题
+     * @param interval    发送间隔（微秒）
+     * @param payloadSize 负载大小（字节）
+     * @param duration    运行时长（分钟）
+     */
     private static void printBanner(String host, int tcpPort, String wsUrl, 
                                     String topic, long interval, int payloadSize, int duration) {
         System.out.println("=== Latency Test ===");
@@ -99,6 +125,9 @@ public final class LatencyTestMain {
         System.out.println();
     }
     
+    /**
+     * 打印帮助信息。
+     */
     private static void printHelp() {
         System.out.println("Usage: java -Dio.netty.leakDetection.level=disabled -cp jwsch-bench.jar cn.itcraft.jwsch.bench.latency.LatencyTestMain [options]");
         System.out.println();

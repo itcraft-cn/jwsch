@@ -16,15 +16,29 @@ public final class TpsTracker {
     private final AtomicLong lastTime = new AtomicLong(System.currentTimeMillis());
     private final int instanceCount;
     
+    /**
+     * 创建 TPS 统计追踪器实例。
+     * 
+     * @param name          追踪器名称（如 "PUB" 或 "SUB"）
+     * @param instanceCount 实例数量
+     */
     public TpsTracker(String name, int instanceCount) {
         this.name = name;
         this.instanceCount = instanceCount;
     }
     
+    /**
+     * 增加计数器。
+     */
     public void increment() {
         counter.increment();
     }
     
+    /**
+     * 输出 TPS 统计报告。
+     * 
+     * <p>计算并输出当前的 TPS、总计数和最近时间窗口内的计数增量。
+     */
     public void report() {
         long now = System.currentTimeMillis();
         long elapsed = now - lastTime.get();
@@ -40,6 +54,11 @@ public final class TpsTracker {
         lastTime.set(now);
     }
     
+    /**
+     * 获取总计数。
+     * 
+     * @return 总计数
+     */
     public long getTotalCount() {
         return counter.sum();
     }

@@ -1,3 +1,19 @@
+/**
+ * 消息推送器服务类。
+ * 
+ * <p>负责将消息封装为 jwsch 协议包并推送到指定的主题。
+ * 支持 JSON 格式消息，包含序列号、主题、内容和时间戳。
+ * 
+ * <p>线程安全设计：
+ * <ul>
+ *   <li>使用 volatile 确保 channel 引用的可见性</li>
+ *   <li>push() 方法从局部变量读取 channel，避免多线程下的空指针异常</li>
+ *   <li>消息计数器使用 int 类型，仅在单线程中递增</li>
+ * </ul>
+ * 
+ * @author itcraft
+ * @since 1.0
+ */
 package cn.itcraft.jwsch.sample.pusher.service;
 
 import cn.itcraft.jwsch.common.id.IdGenerator;
@@ -26,6 +42,14 @@ public class MessagePusher {
     private volatile boolean running = true;
     private int messageCount;
     
+    /**
+     * 创建消息推送器实例。
+     * 
+     * @param channel    TCP 通道（可后续设置）
+     * @param topic      推送主题
+     * @param message    消息内容
+     * @param scheduler  调度器
+     */
     public MessagePusher(Channel channel, String topic, String message, ScheduledExecutorService scheduler) {
         this.channel = channel;
         this.topic = topic;
@@ -34,6 +58,12 @@ public class MessagePusher {
         this.messageCount = 0;
     }
     
+    /**
+     * 推送消息到服务器。
+     * 
+     * <p>将消息封装为 JSON 格式并创建 PUSH 命令包发送。
+     * 如果通道不活跃则跳过发送。
+     */
     public void push() {
         if (!running) {
             return;
@@ -78,18 +108,36 @@ public class MessagePusher {
         });
     }
     
+    /**
+     * 设置 TCP 通道。
+     * 
+     * @param channel TCP 通道
+     */
     public void setChannel(Channel channel) {
         this.channel = channel;
     }
     
+    /**
+     * 获取当前 TCP 通道。
+     * 
+     * @return TCP 通道，可能为 null
+     */
     public Channel getChannel() {
         return channel;
     }
     
+    /**
+     * 停止推送器。
+     */
     public void stop() {
         running = false;
     }
     
+    /**
+     * 获取已推送消息计数。
+     * 
+     * @return 消息计数
+     */
     public int getMessageCount() {
         return messageCount;
     }

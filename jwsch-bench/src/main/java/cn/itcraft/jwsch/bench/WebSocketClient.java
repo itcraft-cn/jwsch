@@ -42,12 +42,22 @@ public final class WebSocketClient {
     private Consumer<ByteBuf> messageHandler;
     private CountDownLatch handshakeLatch;
     
+    /**
+     * 创建 WebSocket 客户端实例。
+     * 
+     * @param url WebSocket URL
+     */
     public WebSocketClient(String url) {
         this.url = url;
         this.group = NativeTransport.createEventLoopGroup(1, "ws-client");
         this.channelClass = NativeTransport.getClientChannelClass();
     }
     
+    /**
+     * 连接到 WebSocket 服务器。
+     * 
+     * @throws Exception 如果连接或握手失败
+     */
     public void connect() throws Exception {
         URI uri = new URI(url);
         String scheme = uri.getScheme() == null ? "ws" : uri.getScheme();
@@ -97,16 +107,29 @@ public final class WebSocketClient {
         System.out.println("WebSocket connected: " + url);
     }
     
+    /**
+     * 发送二进制数据。
+     * 
+     * @param data 要发送的二进制数据
+     */
     public void sendBinary(ByteBuf data) {
         if (channel != null && channel.isActive()) {
             channel.writeAndFlush(new BinaryWebSocketFrame(data));
         }
     }
     
+    /**
+     * 设置消息处理器。
+     * 
+     * @param handler 消息处理器，接收 ByteBuf 参数
+     */
     public void setMessageHandler(Consumer<ByteBuf> handler) {
         this.messageHandler = handler;
     }
     
+    /**
+     * 关闭 WebSocket 连接。
+     */
     public void close() {
         if (channel != null) {
             channel.close();
@@ -114,12 +137,23 @@ public final class WebSocketClient {
         group.shutdownGracefully(100, 300, TimeUnit.MILLISECONDS);
     }
     
+    /**
+     * 获取底层 Netty Channel。
+     * 
+     * @return Netty Channel，可能为 null
+     */
     public Channel getChannel() {
         return channel;
     }
     
     private class WebSocketClientHandler extends ChannelInboundHandlerAdapter {
         
+        /**
+         * 处理接收到的消息。
+         * 
+         * @param ctx ChannelHandlerContext
+         * @param msg 接收到的消息
+         */
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (!handshaker.isHandshakeComplete()) {
@@ -143,6 +177,12 @@ public final class WebSocketClient {
             }
         }
         
+        /**
+         * 处理异常。
+         * 
+         * @param ctx   ChannelHandlerContext
+         * @param cause 异常原因
+         */
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             cause.printStackTrace();

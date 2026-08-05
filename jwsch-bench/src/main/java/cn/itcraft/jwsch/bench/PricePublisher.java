@@ -37,6 +37,13 @@ public final class PricePublisher {
     private double baseBid = 1.08500;
     private double spread = 0.00002;
     
+    /**
+     * 创建价格发布者实例。
+     * 
+     * @param host 目标主机
+     * @param port 目标端口
+     * @throws Exception 如果连接失败或初始化失败
+     */
     public PricePublisher(String host, int port) throws Exception {
         this.allocator = PooledByteBufAllocator.DEFAULT;
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -63,6 +70,11 @@ public final class PricePublisher {
         this.channel = client.connect(host, port);
     }
     
+    /**
+     * 启动价格发布者。
+     * 
+     * @param intervalMs 发送间隔（毫秒）
+     */
     public void start(int intervalMs) {
         scheduler.scheduleAtFixedRate(
             this::sendPrice,
@@ -71,6 +83,9 @@ public final class PricePublisher {
         System.out.println("[PRICE] Publisher started, interval=" + intervalMs + "ms, topic=" + TOPIC);
     }
     
+    /**
+     * 发送价格数据。
+     */
     private void sendPrice() {
         if (!running.get() || !channel.isActive()) {
             return;
@@ -103,6 +118,11 @@ public final class PricePublisher {
         }
     }
     
+    /**
+     * 生成随机买入价。
+     * 
+     * @return 生成的买入价
+     */
     private double generateBid() {
         double delta = (random.nextDouble() - 0.5) * 0.00010;
         baseBid += delta;
@@ -111,6 +131,9 @@ public final class PricePublisher {
         return Math.round(baseBid * 100000.0) / 100000.0;
     }
     
+    /**
+     * 停止价格发布者。
+     */
     public void stop() {
         running.set(false);
         scheduler.shutdownNow();

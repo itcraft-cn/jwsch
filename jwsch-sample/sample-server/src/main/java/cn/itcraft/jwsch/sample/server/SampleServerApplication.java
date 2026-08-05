@@ -1,3 +1,18 @@
+/**
+ * 示例服务器应用入口。
+ * 
+ * <p>启动一个完整的 jwsch 服务器实例，包含 WebSocket 和 TCP 端点。
+ * 使用 Builder 模式配置服务器参数，支持优雅关机。
+ * 
+ * <p>默认配置：
+ * <ul>
+ *   <li>WebSocket: 端口 8080, 路径 /ws, 4个Worker线程</li>
+ *   <li>TCP: 端口 9090, 4个Worker线程</li>
+ * </ul>
+ * 
+ * @author itcraft
+ * @since 1.0
+ */
 package cn.itcraft.jwsch.sample.server;
 
 import cn.itcraft.jwsch.srv.JwschServer;
@@ -11,6 +26,13 @@ public class SampleServerApplication {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleServerApplication.class);
     
+    /**
+     * 示例服务器的主入口方法。
+     * 
+     * <p>创建并启动 jwsch 服务器，注册优雅关机钩子，保持主线程运行。
+     * 
+     * @param args 命令行参数（当前未使用）
+     */
     public static void main(String[] args) {
         LOGGER.info("Starting Jwsch Sample Server...");
         

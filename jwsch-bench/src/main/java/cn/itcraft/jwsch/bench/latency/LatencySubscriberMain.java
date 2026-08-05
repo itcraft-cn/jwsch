@@ -15,6 +15,18 @@ package cn.itcraft.jwsch.bench.latency;
  */
 public final class LatencySubscriberMain {
     
+    /**
+     * 延迟测试订阅者的主入口方法。
+     * 
+     * <p>解析命令行参数，创建 LatencySubscriber 实例并启动测试。
+     * 测试就绪后会打印 "SUBSCRIBER_READY" 标记，结束时输出延迟统计信息。
+     * 
+     * @param args 命令行参数：
+     *             --wsUrl <url>         WebSocket URL
+     *             --topic <topic>       订阅主题
+     *             --duration <minutes>  运行时长（0表示无限）
+     *             --help, -h            显示帮助信息
+     */
     public static void main(String[] args) {
         String wsUrl = "ws://localhost:8080/ws";
         String topic = "/topic/latency";
@@ -66,6 +78,13 @@ public final class LatencySubscriberMain {
         System.out.println("[SUB] Shutdown complete.");
     }
     
+    /**
+     * 打印启动横幅信息。
+     * 
+     * @param wsUrl    WebSocket URL
+     * @param topic    订阅主题
+     * @param duration 运行时长（分钟）
+     */
     private static void printBanner(String wsUrl, String topic, int duration) {
         System.out.println("=== Latency Test Subscriber ===");
         System.out.println("WebSocket URL: " + wsUrl);
@@ -74,6 +93,9 @@ public final class LatencySubscriberMain {
         System.out.println();
     }
     
+    /**
+     * 打印帮助信息。
+     */
     private static void printHelp() {
         System.out.println("Usage: java -Dio.netty.leakDetection.level=disabled -cp jwsch-bench.jar cn.itcraft.jwsch.bench.latency.LatencySubscriberMain [options]");
         System.out.println();

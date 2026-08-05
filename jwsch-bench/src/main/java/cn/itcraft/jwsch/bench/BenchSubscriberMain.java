@@ -20,6 +20,20 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BenchSubscriberMain {
     
+    /**
+     * Benchmark 订阅者独立进程的主入口方法。
+     * 
+     * <p>解析命令行参数，启动指定数量的 WebSocket 订阅者，监控 TPS 并输出统计信息。
+     * 当所有订阅者就绪后会打印 "SUBSCRIBER_READY" 标记供 Shell 脚本同步。
+     * 
+     * @param args 命令行参数：
+     *             --wsUrl <url>          WebSocket URL
+     *             --subscribers <count>  订阅者数量
+     *             --topic <topic>        订阅主题
+     *             --report <seconds>     TPS 报告间隔
+     *             --duration <minutes>   运行时长（0表示无限）
+     *             --help, -h             显示帮助信息
+     */
     public static void main(String[] args) {
         String wsUrl = "ws://localhost:8080/ws";
         int subscribers = 5;
@@ -104,6 +118,15 @@ public final class BenchSubscriberMain {
         System.out.println("[SUB] Shutdown complete.");
     }
     
+    /**
+     * 打印启动横幅信息。
+     * 
+     * @param wsUrl        WebSocket URL
+     * @param subscribers  订阅者数量
+     * @param topic        订阅主题
+     * @param report       报告间隔（秒）
+     * @param duration     运行时长（分钟，0表示无限）
+     */
     private static void printBanner(String wsUrl, int subscribers, String topic,
                                     int report, int duration) {
         System.out.println("=== Jwsch Benchmark Subscriber ===");
@@ -115,6 +138,9 @@ public final class BenchSubscriberMain {
         System.out.println();
     }
     
+    /**
+     * 打印帮助信息。
+     */
     private static void printHelp() {
         System.out.println("Usage: java -jar jwsch-bench.jar subscriber [options]");
         System.out.println();
