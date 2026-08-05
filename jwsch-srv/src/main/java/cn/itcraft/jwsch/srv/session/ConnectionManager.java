@@ -11,6 +11,16 @@ import cn.itcraft.jwsch.common.protocol.Packet;
  *   <li>broadcastAll: Broadcast to all connections</li>
  *   <li>broadcastByTopicHash: Broadcast to subscribers of a topic (by hash)</li>
  * </ul>
+ * 
+ * <p>在集群环境中，ConnectionManager 实现负责：
+ * <ul>
+ *   <li>本地连接管理：维护当前节点的连接映射</li>
+ *   <li>集群转发：将消息转发到其他节点的连接</li>
+ *   <li>负载均衡：根据连接分布决定转发目标</li>
+ * </ul>
+ * 
+ * <p>默认实现 {@link RouterConnectionManager} 与 PacketRouter 集成，
+ * 支持背压控制和订阅管理。
  */
 public interface ConnectionManager {
     

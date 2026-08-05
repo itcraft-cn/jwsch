@@ -18,6 +18,29 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * WebSocket 连接管理器（单例）。
+ * 
+ * <p>管理所有 WebSocket 连接的生命周期，支持：
+ * <ul>
+ *   <li>连接注册、注销和查询</li>
+ *   <li>基于 Topic 的订阅/取消订阅</li>
+ *   <li>广播消息（文本和二进制）</li>
+ *   <li>按 Topic 广播</li>
+ *   <li>空闲连接检测和清理</li>
+ *   <li>连接统计信息</li>
+ * </ul>
+ * 
+ * <p>采用多级存储结构：
+ * <ol>
+ *   <li>connectionId → Channel 映射（channelMap）</li>
+ *   <li>所有 Channel 列表（channels）</li>
+ *   <li>Topic → Channel 列表映射（topicChannels）</li>
+ *   <li>连接最后活跃时间映射（lastActiveTimeMap）</li>
+ * </ol>
+ * 
+ * <p>线程安全，支持高并发访问。
+ */
 public class WebSocketConnectionManager {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketConnectionManager.class);
@@ -46,10 +69,21 @@ public class WebSocketConnectionManager {
         this.connectionIdCounter = new AtomicLong(0);
     }
     
+    /**
+     * 获取 WebSocketConnectionManager 单例实例。
+     *
+     * @return 单例实例
+     */
     public static WebSocketConnectionManager getInstance() {
         return INSTANCE;
     }
     
+    /**
+     * 添加 Channel 并生成新的连接 ID。
+     *
+     * @param channel WebSocket Channel
+     * @return 分配的唯一连接 ID，如果 channel 为 null 则返回 -1
+     */
     public long addChannel(Channel channel) {
         if (channel == null) {
             return -1;
@@ -64,6 +98,12 @@ public class WebSocketConnectionManager {
         return connectionId;
     }
     
+    /**
+     * 使用指定的连接 ID 添加 Channel。
+     *
+     * @param connectionId 连接 ID
+     * @param channel WebSocket Channel
+     */
     public void addChannel(Long connectionId, Channel channel) {
         if (channel == null) {
             return;
@@ -75,6 +115,12 @@ public class WebSocketConnectionManager {
         LOGGER.debug("Added channel: connectionId={}, total={}", connectionId, channels.size());
     }
     
+    /**
+     * 移除指定连接 ID 的 Channel。
+     * <p>同时从所有 Topic 订阅列表中移除该 Channel。
+     *
+     * @param connectionId 连接 ID
+     */
     public void removeChannel(Long connectionId) {
         Channel channel = channelMap.remove(connectionId);
         if (channel != null) {
@@ -89,12 +135,23 @@ public class WebSocketConnectionManager {
         }
     }
     
+    /**
+     * 更新连接的活跃时间。
+     *
+     * @param connectionId 连接 ID
+     */
     public void updateActiveTime(Long connectionId) {
         if (connectionId != null) {
             lastActiveTimeMap.put(connectionId, System.currentTimeMillis());
         }
     }
     
+    /**
+     * 订阅 Topic。
+     *
+     * @param connectionId 连接 ID
+     * @param topic Topic 名称
+     */
     public void subscribeTopic(Long connectionId, String topic) {
         Channel channel = channelMap.get(connectionId);
         if (channel == null || topic == null) {
@@ -106,6 +163,12 @@ public class WebSocketConnectionManager {
         LOGGER.debug("Subscribed topic: connectionId={}, topic={}", connectionId, topic);
     }
     
+    /**
+     * 取消订阅 Topic。
+     *
+     * @param connectionId 连接 ID
+     * @param topic Topic 名称
+     */
     public void unsubscribeTopic(Long connectionId, String topic) {
         Channel channel = channelMap.get(connectionId);
         if (channel == null || topic == null) {
@@ -119,6 +182,11 @@ public class WebSocketConnectionManager {
         LOGGER.debug("Unsubscribed topic: connectionId={}, topic={}", connectionId, topic);
     }
     
+    /**
+     * 广播文本消息给所有活跃连接。
+     *
+     * @param message 文本消息
+     */
     public void broadcast(String message) {
         LOGGER.debug("Broadcasting message to {} channels", channels.size());
         
@@ -131,6 +199,11 @@ public class WebSocketConnectionManager {
         }
     }
     
+    /**
+     * 广播二进制数据给所有活跃连接。
+     *
+     * @param data 二进制数据
+     */
     public void broadcast(byte[] data) {
         LOGGER.debug("Broadcasting binary to {} channels", channels.size());
         
@@ -144,6 +217,12 @@ public class WebSocketConnectionManager {
         }
     }
     
+    /**
+     * 广播文本消息给订阅指定 Topic 的所有活跃连接。
+     *
+     * @param topic Topic 名称
+     * @param message 文本消息
+     */
     public void broadcastToTopic(String topic, String message) {
         List<Channel> topicChannelList = topicChannels.get(topic);
         if (topicChannelList == null || topicChannelList.isEmpty()) {
@@ -160,6 +239,10 @@ public class WebSocketConnectionManager {
         }
     }
     
+    /**
+     * 移除非活跃连接。
+     * <p>检查所有连接，如果 Channel 不活跃或超过最大空闲时间，则关闭并移除。
+     */
     public void removeInactiveChannels() {
         long now = System.currentTimeMillis();
         List<Long> toRemove = new ArrayList<>();
@@ -187,6 +270,10 @@ public class WebSocketConnectionManager {
         }
     }
     
+    /**
+     * 启动空闲连接检查定时任务。
+     * <p>定时调用 {@link #removeInactiveChannels()} 清理空闲连接。
+     */
     public void startInactiveCheck() {
         if (cleanupEnabled) {
             return;
@@ -209,6 +296,9 @@ public class WebSocketConnectionManager {
             inactiveCheckIntervalMs, maxInactiveTimeMs);
     }
     
+    /**
+     * 停止空闲连接检查定时任务。
+     */
     public void stopInactiveCheck() {
         cleanupEnabled = false;
         if (cleanupExecutor != null) {
@@ -226,6 +316,11 @@ public class WebSocketConnectionManager {
         LOGGER.info("Stopped inactive channel check");
     }
     
+    /**
+     * 获取连接统计信息。
+     *
+     * @return 连接统计信息
+     */
     public ConnectionStats getConnectionStats() {
         int activeCount = 0;
         int inactiveCount = 0;
@@ -241,22 +336,46 @@ public class WebSocketConnectionManager {
         return new ConnectionStats(channels.size(), activeCount, inactiveCount, topicChannels.size());
     }
     
+    /**
+     * 获取当前连接总数。
+     *
+     * @return 连接总数
+     */
     public int getConnectionCount() {
         return channels.size();
     }
     
+    /**
+     * 获取所有 Channel 的不可修改列表。
+     *
+     * @return 所有 Channel 列表
+     */
     public List<Channel> getAllChannels() {
         return Collections.unmodifiableList(new ArrayList<>(channels));
     }
     
+    /**
+     * 设置空闲连接检查间隔（毫秒）。
+     *
+     * @param inactiveCheckIntervalMs 检查间隔（毫秒）
+     */
     public void setInactiveCheckIntervalMs(long inactiveCheckIntervalMs) {
         this.inactiveCheckIntervalMs = inactiveCheckIntervalMs;
     }
     
+    /**
+     * 设置最大空闲时间（毫秒）。
+     * <p>超过此时间的连接将被视为空闲并关闭。
+     *
+     * @param maxInactiveTimeMs 最大空闲时间（毫秒）
+     */
     public void setMaxInactiveTimeMs(long maxInactiveTimeMs) {
         this.maxInactiveTimeMs = maxInactiveTimeMs;
     }
     
+    /**
+     * 清空所有连接和订阅信息。
+     */
     public void clear() {
         channelMap.clear();
         channels.clear();
@@ -266,12 +385,23 @@ public class WebSocketConnectionManager {
         LOGGER.info("Cleared all connections");
     }
     
+    /**
+     * 连接统计信息。
+     */
     public static final class ConnectionStats {
         private final int total;
         private final int active;
         private final int inactive;
         private final int topicCount;
         
+        /**
+         * 创建连接统计信息。
+         *
+         * @param total 总连接数
+         * @param active 活跃连接数
+         * @param inactive 非活跃连接数
+         * @param topicCount Topic 数量
+         */
         public ConnectionStats(int total, int active, int inactive, int topicCount) {
             this.total = total;
             this.active = active;
@@ -279,18 +409,38 @@ public class WebSocketConnectionManager {
             this.topicCount = topicCount;
         }
         
+        /**
+         * 获取总连接数。
+         *
+         * @return 总连接数
+         */
         public int getTotal() {
             return total;
         }
         
+        /**
+         * 获取活跃连接数。
+         *
+         * @return 活跃连接数
+         */
         public int getActive() {
             return active;
         }
         
+        /**
+         * 获取非活跃连接数。
+         *
+         * @return 非活跃连接数
+         */
         public int getInactive() {
             return inactive;
         }
         
+        /**
+         * 获取 Topic 数量。
+         *
+         * @return Topic 数量
+         */
         public int getTopicCount() {
             return topicCount;
         }

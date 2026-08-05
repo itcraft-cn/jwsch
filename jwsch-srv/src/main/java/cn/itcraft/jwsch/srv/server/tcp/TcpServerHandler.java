@@ -44,15 +44,39 @@ public class TcpServerHandler extends ChannelInboundHandlerAdapter {
     private final PacketRouter packetRouter;
     private final ServerMetrics serverMetrics;
     
+    /**
+     * 使用默认的 NoOpServerMetrics 创建 TCP 服务端处理器。
+     *
+     * @param packetRouter 数据包路由器
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
     public TcpServerHandler(PacketRouter packetRouter) {
         this(packetRouter, NoOpServerMetrics.INSTANCE);
     }
     
+    /**
+     * 创建 TCP 服务端处理器。
+     *
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null，使用 NoOpServerMetrics）
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
     public TcpServerHandler(PacketRouter packetRouter, ServerMetrics serverMetrics) {
         this.packetRouter = packetRouter;
         this.serverMetrics = serverMetrics != null ? serverMetrics : NoOpServerMetrics.INSTANCE;
     }
     
+    /**
+     * 客户端连接建立时调用。
+     * <ul>
+     *   <li>分配连接 ID 并存储到 Channel 属性</li>
+     *   <li>发送连接响应给客户端</li>
+     *   <li>注册 TCP Channel 到背压管理器</li>
+     *   <li>更新指标计数器</li>
+     * </ul>
+     *
+     * @param ctx ChannelHandlerContext
+     */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         long connectionId = IdGenerator.nextId();
@@ -66,6 +90,15 @@ public class TcpServerHandler extends ChannelInboundHandlerAdapter {
             connectionId, ctx.channel().remoteAddress());
     }
     
+    /**
+     * 客户端连接断开时调用。
+     * <ul>
+     *   <li>从背压管理器注销 TCP Channel</li>
+     *   <li>更新指标计数器</li>
+     * </ul>
+     *
+     * @param ctx ChannelHandlerContext
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         Long connectionId = ctx.channel().attr(CONNECTION_ID_KEY).get();
@@ -77,6 +110,20 @@ public class TcpServerHandler extends ChannelInboundHandlerAdapter {
             connectionId, ctx.channel().remoteAddress());
     }
     
+    /**
+     * 接收到数据时调用。
+     * <p>处理不同类型的 Packet 命令：
+     * <ul>
+     *   <li>PUSH：推送到指定 Topic 的所有订阅者</li>
+     *   <li>BROADCAST：广播给所有前端连接</li>
+     *   <li>REQUEST：路由到指定目标连接</li>
+     *   <li>HEARTBEAT：响应心跳</li>
+     * </ul>
+     * <p>处理完成后释放 Packet 资源（引用计数管理）。
+     *
+     * @param ctx ChannelHandlerContext
+     * @param msg 接收到的消息（应为 Packet 类型）
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (!(msg instanceof Packet)) {
@@ -220,6 +267,13 @@ public class TcpServerHandler extends ChannelInboundHandlerAdapter {
         LOGGER.debug("Sent connect response: connectionId={}", connectionId);
     }
     
+    /**
+     * 处理用户事件（如空闲状态检测）。
+     * <p>当 TCP 客户端在指定时间内没有读取数据时，关闭连接。
+     *
+     * @param ctx ChannelHandlerContext
+     * @param evt 事件对象
+     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof IdleStateEvent) {
@@ -231,6 +285,13 @@ public class TcpServerHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
+    /**
+     * 处理 Channel 异常。
+     * <p>记录错误日志，更新错误指标，并关闭连接。
+     *
+     * @param ctx ChannelHandlerContext
+     * @param cause 异常原因
+     */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         LOGGER.error("TCP server error, closing channel: {}", cause.getMessage(), cause);

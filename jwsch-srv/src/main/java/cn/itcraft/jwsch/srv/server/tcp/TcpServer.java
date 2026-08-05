@@ -17,6 +17,26 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * TCP 服务器。
+ * 
+ * <p>负责处理后端服务（如 sample-pusher）的连接，接收并转发 Packet。
+ * 支持原生传输（Epoll on Linux, KQueue on BSD）以获得更好的性能。
+ * 
+ * <p>特性：
+ * <ul>
+ *   <li>独立的 EventLoopGroup（与 WebSocket 服务器隔离）</li>
+ *   <li>可配置的 TCP 参数（SO_BACKLOG、TCP_NODELAY、KEEPALIVE 等）</li>
+ *   <li>L1 入站速率限制（基于 Token Bucket）</li>
+ *   <li>背压控制（WriteBufferWaterMark）</li>
+ * </ul>
+ * 
+ * <p>支持两种 EventLoopGroup 管理模式：
+ * <ol>
+ *   <li>自有模式（ownsEventLoop=true）：创建并管理 EventLoopGroup 生命周期</li>
+ *   <li>共享模式（ownsEventLoop=false）：使用外部提供的 EventLoopGroup</li>
+ * </ol>
+ */
 public class TcpServer {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(TcpServer.class);
@@ -37,14 +57,38 @@ public class TcpServer {
     private Channel serverChannel;
     private volatile boolean started = false;
     
+    /**
+     * 使用默认的 ServerMetrics 和 FlowControlConfig 创建 TCP 服务器。
+     *
+     * @param config TCP 配置
+     * @param packetRouter 数据包路由器
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public TcpServer(TcpConfig config, PacketRouter packetRouter) {
         this(config, packetRouter, null, FlowControlConfig.defaultConfig());
     }
     
+    /**
+     * 使用指定的 ServerMetrics 和默认的 FlowControlConfig 创建 TCP 服务器。
+     *
+     * @param config TCP 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public TcpServer(TcpConfig config, PacketRouter packetRouter, ServerMetrics serverMetrics) {
         this(config, packetRouter, serverMetrics, FlowControlConfig.defaultConfig());
     }
     
+    /**
+     * 创建 TCP 服务器（自有 EventLoopGroup 模式）。
+     *
+     * @param config TCP 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param flowControlConfig 流量控制配置（可为 null，使用默认配置）
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public TcpServer(TcpConfig config, PacketRouter packetRouter, ServerMetrics serverMetrics,
                      FlowControlConfig flowControlConfig) {
         this.config = config;
@@ -54,11 +98,32 @@ public class TcpServer {
         this.ownsEventLoop = true;
     }
     
+    /**
+     * 创建 TCP 服务器（共享 EventLoopGroup 模式）。
+     *
+     * @param config TCP 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param bossGroup 共享的 boss EventLoopGroup
+     * @param workerGroup 共享的 worker EventLoopGroup
+     * @throws NullPointerException 如果 config、packetRouter、bossGroup 或 workerGroup 为 null
+     */
     public TcpServer(TcpConfig config, PacketRouter packetRouter, ServerMetrics serverMetrics, 
                     EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
         this(config, packetRouter, serverMetrics, bossGroup, workerGroup, FlowControlConfig.defaultConfig());
     }
     
+    /**
+     * 创建 TCP 服务器（共享 EventLoopGroup 模式，带流量控制配置）。
+     *
+     * @param config TCP 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param bossGroup 共享的 boss EventLoopGroup
+     * @param workerGroup 共享的 worker EventLoopGroup
+     * @param flowControlConfig 流量控制配置（可为 null，使用默认配置）
+     * @throws NullPointerException 如果 config、packetRouter、bossGroup 或 workerGroup 为 null
+     */
     public TcpServer(TcpConfig config, PacketRouter packetRouter, ServerMetrics serverMetrics, 
                     EventLoopGroup bossGroup, EventLoopGroup workerGroup,
                     FlowControlConfig flowControlConfig) {
@@ -71,6 +136,14 @@ public class TcpServer {
         this.ownsEventLoop = false;
     }
     
+    /**
+     * 启动 TCP 服务器。
+     * 
+     * <p>如果 ownsEventLoop 为 true 且 EventLoopGroup 未初始化，则创建新的 EventLoopGroup。
+     * 配置 ServerBootstrap 并绑定到指定端口。
+     * 
+     * @throws IllegalStateException 如果启动失败
+     */
     public void start() {
         if (started) {
             LOGGER.warn("TcpServer already started");
@@ -112,6 +185,11 @@ public class TcpServer {
         }
     }
     
+    /**
+     * 关闭 TCP 服务器。
+     * 
+     * <p>关闭服务器 Channel，如果 ownsEventLoop 为 true 则关闭 EventLoopGroup。
+     */
     public void shutdown() {
         if (!started) {
             return;
@@ -136,10 +214,20 @@ public class TcpServer {
         LOGGER.info("TcpServer shutdown");
     }
     
+    /**
+     * 检查服务器是否已启动。
+     *
+     * @return true 如果服务器已启动，否则 false
+     */
     public boolean isStarted() {
         return started;
     }
     
+    /**
+     * 获取服务器监听的端口。
+     *
+     * @return 端口号
+     */
     public int getPort() {
         return config.getPort();
     }

@@ -31,6 +31,22 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * WebSocket 服务器实现。
+ * 
+ * <p>基于 Netty 的 WebSocket 服务器，支持 SSL/TLS 加密和背压控制。
+ * <ul>
+ *   <li>支持二进制和文本帧协议</li>
+ *   <li>集成 SSL/TLS 加密（WSS）</li>
+ *   <li>支持自定义 EventLoopGroup（共享或独占）</li>
+ *   <li>集成背压控制（OutboundBufferHandler）</li>
+ *   <li>支持慢查询检测</li>
+ *   <li>支持指标收集</li>
+ * </ul>
+ * 
+ * <p>使用 NativeTransport 自动选择最佳传输（Epoll/KQueue/NIO）。
+ * 支持优雅启动和关闭。
+ */
 public class WebSocketServer {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServer.class);
@@ -53,20 +69,54 @@ public class WebSocketServer {
     private Channel serverChannel;
     private volatile boolean started = false;
     
+    /**
+     * 使用默认配置创建 WebSocket 服务器（禁用 SSL、慢查询检测和背压控制）。
+     *
+     * @param config WebSocket 配置
+     * @param packetRouter 数据包路由器
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public WebSocketServer(WebSocketConfig config, PacketRouter packetRouter) {
         this(config, packetRouter, null, 0);
     }
     
+    /**
+     * 使用默认的背压控制和禁用慢查询检测创建 WebSocket 服务器。
+     *
+     * @param config WebSocket 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public WebSocketServer(WebSocketConfig config, PacketRouter packetRouter, 
                           ServerMetrics serverMetrics) {
         this(config, packetRouter, serverMetrics, 0);
     }
     
+    /**
+     * 使用默认的背压控制创建 WebSocket 服务器。
+     *
+     * @param config WebSocket 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public WebSocketServer(WebSocketConfig config, PacketRouter packetRouter, 
                           ServerMetrics serverMetrics, int slowQueryThresholdMs) {
         this(config, packetRouter, serverMetrics, slowQueryThresholdMs, FlowControlConfig.defaultConfig());
     }
     
+    /**
+     * 创建 WebSocket 服务器（拥有独立 EventLoopGroup）。
+     *
+     * @param config WebSocket 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @param flowControlConfig 背压控制配置（可为 null，使用默认配置）
+     * @throws NullPointerException 如果 config 或 packetRouter 为 null
+     */
     public WebSocketServer(WebSocketConfig config, PacketRouter packetRouter, 
                           ServerMetrics serverMetrics, int slowQueryThresholdMs,
                           FlowControlConfig flowControlConfig) {
@@ -79,6 +129,17 @@ public class WebSocketServer {
         this.flowControlConfig = flowControlConfig != null ? flowControlConfig : FlowControlConfig.defaultConfig();
     }
     
+    /**
+     * 使用共享的 EventLoopGroup 创建 WebSocket 服务器（默认背压控制）。
+     *
+     * @param config WebSocket 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @param bossGroup 共享的 boss EventLoopGroup（非 null）
+     * @param workerGroup 共享的 worker EventLoopGroup（非 null）
+     * @throws NullPointerException 如果 config、packetRouter、bossGroup 或 workerGroup 为 null
+     */
     public WebSocketServer(WebSocketConfig config, PacketRouter packetRouter, 
                           ServerMetrics serverMetrics, int slowQueryThresholdMs,
                           EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
@@ -86,6 +147,18 @@ public class WebSocketServer {
              bossGroup, workerGroup, FlowControlConfig.defaultConfig());
     }
     
+    /**
+     * 使用共享的 EventLoopGroup 创建 WebSocket 服务器。
+     *
+     * @param config WebSocket 配置
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @param bossGroup 共享的 boss EventLoopGroup（非 null）
+     * @param workerGroup 共享的 worker EventLoopGroup（非 null）
+     * @param flowControlConfig 背压控制配置（可为 null，使用默认配置）
+     * @throws NullPointerException 如果 config、packetRouter、bossGroup 或 workerGroup 为 null
+     */
     public WebSocketServer(WebSocketConfig config, PacketRouter packetRouter, 
                           ServerMetrics serverMetrics, int slowQueryThresholdMs,
                           EventLoopGroup bossGroup, EventLoopGroup workerGroup,
@@ -116,6 +189,20 @@ public class WebSocketServer {
         }
     }
     
+    /**
+     * 启动 WebSocket 服务器。
+     * <p>如果已启动，则忽略调用。
+     * <p>启动过程：
+     * <ol>
+     *   <li>创建或使用现有的 EventLoopGroup</li>
+     *   <li>配置 ServerBootstrap（TCP 选项、SSL、HTTP 编解码器）</li>
+     *   <li>添加背压控制处理器（如果启用）</li>
+     *   <li>配置 WebSocket 协议处理器</li>
+     *   <li>绑定端口并启动监听</li>
+     * </ol>
+     * 
+     * @throws IllegalStateException 如果启动失败
+     */
     public void start() {
         if (started) {
             LOGGER.warn("WebSocketServer already started");
@@ -190,6 +277,16 @@ public class WebSocketServer {
         }
     }
     
+    /**
+     * 关闭 WebSocket 服务器。
+     * <p>如果未启动，则忽略调用。
+     * <p>关闭过程：
+     * <ol>
+     *   <li>关闭服务器 Channel</li>
+     *   <li>如果拥有独立的 EventLoopGroup，则优雅关闭</li>
+     *   <li>更新启动状态</li>
+     * </ol>
+     */
     public void shutdown() {
         if (!started) {
             return;
@@ -214,14 +311,29 @@ public class WebSocketServer {
         LOGGER.info("WebSocketServer shutdown");
     }
     
+    /**
+     * 检查服务器是否已启动。
+     *
+     * @return true 如果服务器已启动，否则 false
+     */
     public boolean isStarted() {
         return started;
     }
     
+    /**
+     * 获取服务器监听的端口。
+     *
+     * @return 端口号
+     */
     public int getPort() {
         return config.getPort();
     }
     
+    /**
+     * 检查是否启用了 SSL/TLS 加密。
+     *
+     * @return true 如果启用了 SSL/TLS，否则 false
+     */
     public boolean isSslEnabled() {
         return sslContext != null;
     }

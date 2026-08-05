@@ -31,6 +31,21 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * WebSocket 帧处理器。
+ * 
+ * <p>处理 WebSocket 连接的生命周期和帧数据：
+ * <ul>
+ *   <li>握手完成事件处理</li>
+ *   <li>二进制帧解码为 Packet</li>
+ *   <li>文本帧处理（支持 subscribe:topic 文本协议）</li>
+ *   <li>心跳响应（PING/PONG）</li>
+ *   <li>连接关闭处理</li>
+ *   <li>背压控制通知</li>
+ * </ul>
+ * 
+ * <p>支持二进制协议格式（Magic + Header + Body）和文本协议（subscribe:topic）。
+ * 二进制帧遵循 jwsch 协议规范，文本帧用于简单订阅场景。
+ * 
+ * <p>集成慢查询检测、指标收集和错误处理。
  */
 public class WebSocketHandler extends ChannelInboundHandlerAdapter {
     
@@ -41,20 +56,47 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
     private final int slowQueryThresholdMs;
     private Long connectionId;
     
+    /**
+     * 使用默认的 NoOpServerMetrics 和禁用慢查询检测创建 WebSocket 处理器。
+     *
+     * @param packetRouter 数据包路由器
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
     public WebSocketHandler(PacketRouter packetRouter) {
         this(packetRouter, NoOpServerMetrics.INSTANCE, 0);
     }
     
+    /**
+     * 禁用慢查询检测创建 WebSocket 处理器。
+     *
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null，使用 NoOpServerMetrics）
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
     public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics) {
         this(packetRouter, serverMetrics, 0);
     }
     
+    /**
+     * 创建 WebSocket 处理器。
+     *
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null，使用 NoOpServerMetrics）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
     public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics, int slowQueryThresholdMs) {
         this.packetRouter = packetRouter;
         this.serverMetrics = serverMetrics;
         this.slowQueryThresholdMs = slowQueryThresholdMs;
     }
     
+    /**
+     * Channel 激活时调用（TCP 连接建立）。
+     * <p>分配连接 ID 并注册到 PacketRouter。
+     *
+     * @param ctx ChannelHandlerContext
+     */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         connectionId = IdGenerator.nextId();
@@ -63,6 +105,13 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         LOGGER.debug("TCP connection active: connectionId={}, waiting for WebSocket handshake", connectionId);
     }
     
+    /**
+     * 处理用户事件（握手完成、空闲状态等）。
+     * <p>握手完成后发送连接响应包。
+     *
+     * @param ctx ChannelHandlerContext
+     * @param evt 事件对象
+     */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
         if (evt instanceof HandshakeComplete) {
@@ -77,6 +126,12 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
+    /**
+     * Channel 关闭时调用。
+     * <p>从 PacketRouter 移除连接并更新指标。
+     *
+     * @param ctx ChannelHandlerContext
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         if (connectionId != null) {
@@ -86,6 +141,13 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
+    /**
+     * 接收到 WebSocket 帧时调用。
+     * <p>根据帧类型分发到相应的处理方法。
+     *
+     * @param ctx ChannelHandlerContext
+     * @param msg WebSocketFrame 对象
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (!(msg instanceof WebSocketFrame)) {
@@ -265,6 +327,12 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         ctx.close();
     }
     
+    /**
+     * Channel 可写性变化时调用。
+     * <p>通知背压管理器前端连接的写入状态变化。
+     *
+     * @param ctx ChannelHandlerContext
+     */
     @Override
     public void channelWritabilityChanged(ChannelHandlerContext ctx) {
         boolean writable = ctx.channel().isWritable();
@@ -293,6 +361,13 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
+    /**
+     * 捕获异常时调用。
+     * <p>记录错误日志，更新错误指标，关闭连接。
+     *
+     * @param ctx ChannelHandlerContext
+     * @param cause 异常原因
+     */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         LOGGER.error("Exception caught: connectionId={}", connectionId, cause);
