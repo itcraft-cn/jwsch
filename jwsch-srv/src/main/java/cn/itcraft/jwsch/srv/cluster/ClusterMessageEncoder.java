@@ -17,6 +17,15 @@ import cn.itcraft.jwsch.srv.cluster.message.ClusterSync;
  * 
  * <p>Encodes ClusterMessage subclasses to ByteBuf for network transmission.
  * Uses zerocopy where possible - message classes handle their own encoding.
+ * Implements Netty's MessageToByteEncoder for efficient memory management.
+ * 
+ * <p>Key features:
+ * <ul>
+ *   <li>Buffer pre-allocation based on message size estimation</li>
+ *   <li>Support for both direct and heap buffers</li>
+ *   <li>Delegates actual encoding to message.encode() method</li>
+ *   <li>Optimized for high-throughput cluster communication</li>
+ * </ul>
  */
 class ClusterMessageEncoder extends MessageToByteEncoder<ClusterMessage> {
     
