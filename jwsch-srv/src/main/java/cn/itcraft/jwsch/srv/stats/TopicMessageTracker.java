@@ -11,6 +11,21 @@ import java.util.concurrent.atomic.LongAdder;
  * Topic 消息追踪器。
  * 
  * <p>统计每个 Topic 的消息数量，按命令类型分类。
+ * 
+ * <p>This tracker maintains per-topic message counts categorized by command type.
+ * Uses {@link LongAdder} for thread-safe counting in high-concurrency environments.
+ * 
+ * <p>Counts are stored in five separate maps:
+ * <ul>
+ *   <li>Total message count</li>
+ *   <li>Request count (REQUEST command)</li>
+ *   <li>Response count (RESPONSE command)</li>
+ *   <li>Push count (PUSH command)</li>
+ *   <li>Broadcast count (BROADCAST command)</li>
+ * </ul>
+ * 
+ * <p>Topic names are interned to reduce memory footprint when the same topic string
+ * appears multiple times.
  */
 public class TopicMessageTracker {
     
@@ -20,6 +35,12 @@ public class TopicMessageTracker {
     private final ConcurrentMap<String, LongAdder> pushCounts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, LongAdder> broadcastCounts = new ConcurrentHashMap<>();
     
+    /**
+     * Records a message for the given topic and command.
+     * 
+     * @param topic the topic name
+     * @param command the command byte (see {@link cn.itcraft.jwsch.common.protocol.Command})
+     */
     public void record(String topic, byte command) {
         String internedTopic = topic.intern();
         messageCounts.computeIfAbsent(internedTopic, k -> new LongAdder()).increment();
@@ -43,6 +64,12 @@ public class TopicMessageTracker {
         }
     }
     
+    /**
+     * Returns the top 10 topics by total message count.
+     * <p>The list is sorted in descending order by total message count.
+     * 
+     * @return list of {@link TopicMessageStats} for top 10 topics
+     */
     public List<TopicMessageStats> getTop10() {
         List<TopicMessageStats> stats = new ArrayList<>();
         
@@ -65,6 +92,12 @@ public class TopicMessageTracker {
         return stats;
     }
     
+    /**
+     * Returns detailed statistics for a specific topic.
+     * 
+     * @param topic the topic name
+     * @return {@link TopicMessageStats} for the topic, or null if the topic has no recorded messages
+     */
     public TopicMessageStats getStats(String topic) {
         LongAdder messageCount = messageCounts.get(topic);
         if (messageCount == null) {
@@ -81,15 +114,30 @@ public class TopicMessageTracker {
         );
     }
     
+    /**
+     * Helper method to safely get the sum from a LongAdder map.
+     * 
+     * @param map the map containing LongAdder counters
+     * @param topic the topic key
+     * @return the sum of the LongAdder, or 0 if no entry exists
+     */
     private long getSum(ConcurrentMap<String, LongAdder> map, String topic) {
         LongAdder adder = map.get(topic);
         return adder != null ? adder.sum() : 0;
     }
     
+    /**
+     * Returns the total number of unique topics with recorded messages.
+     * 
+     * @return number of unique topics
+     */
     public int getTotalTopics() {
         return messageCounts.size();
     }
     
+    /**
+     * Clears all statistics, resetting all counters to zero.
+     */
     public void clear() {
         messageCounts.clear();
         requestCounts.clear();
