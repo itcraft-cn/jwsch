@@ -15,6 +15,38 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Native transport utility for Netty.
+ *
+ * <p>Automatically detects platform support for Epoll, uses native transport
+ * for better performance when available.
+ *
+ * <p>Epoll advantages over NIO on Linux:
+ * <ul>
+ *   <li>Fewer system calls, reduced context switching</li>
+ *   <li>Edge-triggered mode, higher concurrency efficiency</li>
+ *   <li>Better zero-copy support</li>
+ * </ul>
+ *
+ * <p>Optimization implementation:
+ * <ul>
+ *   <li>Determines factory implementation at static initialization,
+ *       avoids branch checks per call</li>
+ *   <li>Functional interface encapsulation, zero runtime overhead</li>
+ * </ul>
+ *
+ * <p>Usage example:
+ * <pre>
+ * EventLoopGroup bossGroup = NativeTransport.createEventLoopGroup(1, "boss");
+ * EventLoopGroup workerGroup = NativeTransport.createEventLoopGroup(4, "worker");
+ * Class&lt;? extends ServerChannel&gt; channelClass = NativeTransport.getServerChannelClass();
+ * 
+ * ServerBootstrap bootstrap = new ServerBootstrap()
+ *     .group(bossGroup, workerGroup)
+ *     .channel(channelClass);
+ * </pre>
+ */
+
+/**
  * 原生传输工具类。
  * 
  * <p>自动检测平台是否支持 Epoll，优先使用原生传输以提升性能。

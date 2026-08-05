@@ -10,6 +10,39 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * Shared EventLoop manager for Netty.
+ *
+ * <p>Supports two modes:
+ * <ul>
+ *   <li>Server mode: bossGroup + workerGroup for Netty Server</li>
+ *   <li>Client mode: workerGroup only for Netty Client</li>
+ * </ul>
+ *
+ * <p>Uses reference counting for lifecycle management, supports multiple components
+ * sharing the same EventLoop groups.
+ *
+ * <p>Server mode example:
+ * <pre>
+ * SharedEventLoopManager manager = SharedEventLoopManager.createServer(1, 4);
+ * manager.acquire();
+ * ServerBootstrap bootstrap = new ServerBootstrap()
+ *     .group(manager.getBossGroup(), manager.getWorkerGroup());
+ * // ... after server shutdown
+ * manager.release();
+ * manager.shutdown();
+ * </pre>
+ *
+ * <p>Client mode example:
+ * <pre>
+ * SharedEventLoopManager manager = SharedEventLoopManager.getClientInstance();
+ * EventLoopGroup workerGroup = manager.acquireWorkerGroup();
+ * Bootstrap bootstrap = new Bootstrap().group(workerGroup);
+ * // ... after client shutdown
+ * manager.release();
+ * </pre>
+ */
+
+/**
  * 共享 EventLoop 管理器。
  * 
  * <p>支持两种模式：
