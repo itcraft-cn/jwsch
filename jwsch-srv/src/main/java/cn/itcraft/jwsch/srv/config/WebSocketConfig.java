@@ -2,19 +2,46 @@ package cn.itcraft.jwsch.srv.config;
 
 import cn.itcraft.jwsch.common.ssl.SslConfig;
 
+/**
+ * WebSocket server configuration.
+ *
+ * <p>Uses Builder pattern to create immutable configuration:
+ * <pre>
+ * WebSocketConfig config = WebSocketConfig.builder()
+ *     .port(8080)
+ *     .path("/ws")
+ *     .bossThreads(1)
+ *     .workerThreads(0)
+ *     .maxFrameSize(65536)
+ *     .tcpNoDelay(true)
+ *     .keepAlive(true)
+ *     .soBacklog(1024)
+ *     .sslConfig(null)
+ *     .build();
+ * </pre>
+ */
 public final class WebSocketConfig {
     
     public static final int DEFAULT_MAX_FRAME_SIZE = 65536;
     public static final int MAX_FRAME_SIZE = 512 * 1024;
     
+    /** WebSocket server port */
     private final int port;
+    /** WebSocket endpoint path */
     private final String path;
+    /** Number of boss threads for Netty event loop */
     private final int bossThreads;
+    /** Number of worker threads for Netty event loop (0 = auto-detect) */
     private final int workerThreads;
+    /** Maximum WebSocket frame size in bytes */
     private final int maxFrameSize;
+    /** Whether TCP_NODELAY option is enabled */
     private final boolean tcpNoDelay;
+    /** Whether SO_KEEPALIVE option is enabled */
     private final boolean keepAlive;
+    /** Server socket backlog size */
     private final int soBacklog;
+    /** SSL/TLS configuration (null if SSL is disabled) */
     private final SslConfig sslConfig;
     
     private WebSocketConfig(Builder builder) {

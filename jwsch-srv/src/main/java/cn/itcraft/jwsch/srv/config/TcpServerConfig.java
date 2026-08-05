@@ -1,17 +1,35 @@
 package cn.itcraft.jwsch.srv.config;
 
+/**
+ * TCP server configuration for YAML/JSON deserialization.
+ *
+ * <p>This is a mutable configuration class used for external configuration
+ * loading (e.g., from YAML files). It contains TCP server settings including
+ * socket options and timeouts.
+ */
 public class TcpServerConfig {
     
+    /** TCP server port (default: 9090) */
     private int port = 9090;
+    /** Number of boss threads for Netty event loop (default: 1) */
     private int bossThreads = 1;
+    /** Number of worker threads for Netty event loop (default: 4) */
     private int workerThreads = 4;
+    /** Connection timeout in milliseconds (default: 30000) */
     private int connectTimeout = 30000;
+    /** Read timeout in milliseconds (0 = disabled, default: 0) */
     private int readTimeout = 0;
+    /** Write timeout in milliseconds (0 = disabled, default: 0) */
     private int writeTimeout = 0;
+    /** Server socket backlog size (default: 1024) */
     private int soBacklog = 1024;
+    /** Whether TCP_NODELAY option is enabled (default: true) */
     private boolean tcpNoDelay = true;
+    /** Whether SO_KEEPALIVE option is enabled (default: true) */
     private boolean keepAlive = true;
+    /** Socket send buffer size in bytes (0 = use system default, default: 0) */
     private int sndbuf = 0;
+    /** Socket receive buffer size in bytes (0 = use system default, default: 0) */
     private int rcvbuf = 0;
     
     public int getPort() {

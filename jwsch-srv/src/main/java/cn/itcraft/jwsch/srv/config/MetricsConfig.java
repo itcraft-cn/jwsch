@@ -1,9 +1,24 @@
 package cn.itcraft.jwsch.srv.config;
 
+/**
+ * Metrics endpoint configuration.
+ *
+ * <p>Uses Builder pattern to create immutable configuration:
+ * <pre>
+ * MetricsConfig config = MetricsConfig.builder()
+ *     .enabled(true)
+ *     .port(8082)
+ *     .path("/metrics")
+ *     .build();
+ * </pre>
+ */
 public final class MetricsConfig {
     
+    /** Whether metrics endpoint is enabled */
     private final boolean enabled;
+    /** Metrics server port */
     private final int port;
+    /** Metrics endpoint path */
     private final String path;
     
     private MetricsConfig(Builder builder) {

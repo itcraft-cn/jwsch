@@ -1,13 +1,36 @@
 package cn.itcraft.jwsch.srv.config;
 
+/**
+ * TCP server configuration.
+ *
+ * <p>Uses Builder pattern to create immutable configuration:
+ * <pre>
+ * TcpConfig config = TcpConfig.builder()
+ *     .port(9090)
+ *     .bossThreads(1)
+ *     .workerThreads(4)
+ *     .connectTimeout(30000)
+ *     .tcpNoDelay(true)
+ *     .keepAlive(true)
+ *     .soBacklog(1024)
+ *     .build();
+ * </pre>
+ */
 public final class TcpConfig {
     
+    /** TCP server port */
     private final int port;
+    /** Number of boss threads for Netty event loop */
     private final int bossThreads;
+    /** Number of worker threads for Netty event loop */
     private final int workerThreads;
+    /** Connection timeout in milliseconds */
     private final int connectTimeout;
+    /** Whether TCP_NODELAY option is enabled */
     private final boolean tcpNoDelay;
+    /** Whether SO_KEEPALIVE option is enabled */
     private final boolean keepAlive;
+    /** Server socket backlog size */
     private final int soBacklog;
     
     private TcpConfig(Builder builder) {

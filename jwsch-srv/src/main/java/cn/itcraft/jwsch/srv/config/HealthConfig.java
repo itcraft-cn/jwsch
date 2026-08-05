@@ -1,9 +1,24 @@
 package cn.itcraft.jwsch.srv.config;
 
+/**
+ * Health check endpoint configuration.
+ *
+ * <p>Uses Builder pattern to create immutable configuration:
+ * <pre>
+ * HealthConfig config = HealthConfig.builder()
+ *     .enabled(true)
+ *     .port(8081)
+ *     .host("0.0.0.0")
+ *     .build();
+ * </pre>
+ */
 public final class HealthConfig {
     
+    /** Whether health check endpoint is enabled */
     private final boolean enabled;
+    /** Health check server port */
     private final int port;
+    /** Health check server bind host */
     private final String host;
     
     private HealthConfig(Builder builder) {

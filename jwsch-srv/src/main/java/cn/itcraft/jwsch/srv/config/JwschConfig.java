@@ -3,20 +3,51 @@ package cn.itcraft.jwsch.srv.config;
 import cn.itcraft.jwsch.common.flowcontrol.FlowControlConfig;
 import cn.itcraft.jwsch.srv.cluster.ClusterConfig;
 
+/**
+ * Main jwsch server configuration.
+ *
+ * <p>Uses Builder pattern to create immutable configuration:
+ * <pre>
+ * JwschConfig config = JwschConfig.builder()
+ *     .enabled(true)
+ *     .bossThreads(1)
+ *     .workerThreads(0)
+ *     .webSocket(WebSocketConfig.builder().build())
+ *     .tcp(TcpConfig.builder().build())
+ *     .cluster(new ClusterConfig())
+ *     .health(HealthConfig.builder().build())
+ *     .metrics(MetricsConfig.builder().build())
+ *     .flowControl(FlowControlConfig.defaultConfig())
+ *     .slowQueryThresholdMs(100)
+ *     .jmxEnabled(false)
+ *     .build();
+ * </pre>
+ */
 public final class JwschConfig {
     
     private static final int DEFAULT_SLOW_QUERY_THRESHOLD_MS = 100;
     
+    /** Whether the jwsch server is enabled */
     private final boolean enabled;
+    /** Number of boss threads for Netty event loop */
     private final int bossThreads;
+    /** Number of worker threads for Netty event loop (0 = auto-detect) */
     private final int workerThreads;
+    /** WebSocket server configuration */
     private final WebSocketConfig webSocket;
+    /** TCP server configuration */
     private final TcpConfig tcp;
+    /** Cluster configuration */
     private final ClusterConfig cluster;
+    /** Health check configuration */
     private final HealthConfig health;
+    /** Metrics configuration */
     private final MetricsConfig metrics;
+    /** Flow control configuration */
     private final FlowControlConfig flowControl;
+    /** Slow query threshold in milliseconds */
     private final int slowQueryThresholdMs;
+    /** Whether JMX monitoring is enabled */
     private final boolean jmxEnabled;
     
     private JwschConfig(Builder builder) {
