@@ -65,6 +65,12 @@ public class PacketRouter {
     private volatile TopicStatsManager topicStatsManager = NoOpTopicStatsManager.INSTANCE;
     private volatile ClusterForwarder clusterForwarder;
     
+    /**
+     * 构造函数。
+     *
+     * @param serviceRegistry 服务注册中心，不可为 null
+     * @param loadBalance 负载均衡器，不可为 null
+     */
     public PacketRouter(ServiceRegistry serviceRegistry, LoadBalance loadBalance) {
         this.frontendConnections = new ConcurrentHashMap<>();
         this.backendConnections = new ConcurrentHashMap<>();
@@ -75,30 +81,69 @@ public class PacketRouter {
         this.backpressureManager = new BackpressureManager();
     }
     
+    /**
+     * 设置 Topic 统计管理器。
+     *
+     * @param topicStatsManager Topic 统计管理器，如果为 null 则使用无操作实现
+     */
     public void setTopicStatsManager(TopicStatsManager topicStatsManager) {
         this.topicStatsManager = topicStatsManager != null ? topicStatsManager : NoOpTopicStatsManager.INSTANCE;
     }
     
+    /**
+     * 设置集群转发器。
+     *
+     * @param clusterForwarder 集群转发器
+     */
     public void setClusterForwarder(ClusterForwarder clusterForwarder) {
         this.clusterForwarder = clusterForwarder;
     }
     
+    /**
+     * 设置 Topic 背压管理器。
+     *
+     * @param topicBackpressureManager Topic 背压管理器
+     */
     public void setTopicBackpressureManager(TopicBackpressureManager topicBackpressureManager) {
         this.topicBackpressureManager = topicBackpressureManager;
     }
     
+    /**
+     * 获取 Topic 背压管理器。
+     *
+     * @return Topic 背压管理器
+     */
     public TopicBackpressureManager getTopicBackpressureManager() {
         return topicBackpressureManager;
     }
     
+    /**
+     * 获取集群转发器。
+     *
+     * @return 集群转发器
+     */
     public ClusterForwarder getClusterForwarder() {
         return clusterForwarder;
     }
     
+    /**
+     * 获取 Topic 统计管理器。
+     *
+     * @return Topic 统计管理器
+     */
     public TopicStatsManager getTopicStatsManager() {
         return topicStatsManager;
     }
     
+    /**
+     * 路由数据包到合适的服务实例。
+     *
+     * <p>从数据包中提取服务名称，通过服务注册中心获取可用实例，
+     * 使用负载均衡算法选择目标实例。
+     *
+     * @param packet 待路由的数据包
+     * @return 选中的服务实例，如果没有可用的实例则返回 null
+     */
     public ServiceInstance route(Packet packet) {
         String serviceName = extractServiceName(packet);
         
@@ -123,12 +168,26 @@ public class PacketRouter {
         return selected;
     }
     
+    /**
+     * 添加前端连接（WebSocket 客户端）。
+     *
+     * @param connectionId 连接 ID
+     * @param channel Netty 通道
+     */
     public void addFrontendConnection(long connectionId, Channel channel) {
         frontendConnections.put(connectionId, channel);
         backpressureManager.registerFrontendChannel(channel);
         LOGGER.info("Frontend connection added: id={}", connectionId);
     }
     
+    /**
+     * 移除前端连接。
+     *
+     * <p>移除连接时会取消该连接的所有 Topic 订阅，
+     * 并从背压管理器中注销通道。
+     *
+     * @param connectionId 连接 ID
+     */
     public void removeFrontendConnection(long connectionId) {
         Channel removed = frontendConnections.remove(connectionId);
         if (removed != null) {
@@ -138,24 +197,51 @@ public class PacketRouter {
         }
     }
     
+    /**
+     * 获取前端连接。
+     *
+     * @param connectionId 连接 ID
+     * @return Netty 通道，如果连接不存在则返回 null
+     */
     public Channel getFrontendConnection(long connectionId) {
         return frontendConnections.get(connectionId);
     }
     
+    /**
+     * 获取前端连接数量。
+     *
+     * @return 前端连接数量
+     */
     public int getFrontendConnectionCount() {
         return frontendConnections.size();
     }
     
+    /**
+     * 获取前端连接映射。
+     *
+     * @return 连接 ID 到通道的映射
+     */
     public Map<Long, Channel> getFrontendConnectionsMap() {
         return frontendConnections;
     }
     
+    /**
+     * 添加后端连接（TCP 服务端）。
+     *
+     * @param serviceName 服务名称
+     * @param channel Netty 通道
+     */
     public void addBackendConnection(String serviceName, Channel channel) {
         backendConnections.put(serviceName, channel);
         backpressureManager.registerTcpChannel(channel);
         LOGGER.info("Backend connection added: service={}", serviceName);
     }
     
+    /**
+     * 移除后端连接。
+     *
+     * @param serviceName 服务名称
+     */
     public void removeBackendConnection(String serviceName) {
         Channel removed = backendConnections.remove(serviceName);
         if (removed != null) {
@@ -164,10 +250,25 @@ public class PacketRouter {
         }
     }
     
+    /**
+     * 获取后端连接。
+     *
+     * @param serviceName 服务名称
+     * @return Netty 通道，如果连接不存在则返回 null
+     */
     public Channel getBackendConnection(String serviceName) {
         return backendConnections.get(serviceName);
     }
     
+    /**
+     * 路由数据包到后端服务。
+     *
+     * <p>这是一个异步方法，返回 CompletableFuture 用于处理响应。
+     * 方法会为请求生成唯一的请求 ID，并在响应映射中创建对应的 Future。
+     *
+     * @param packet 待路由的数据包
+     * @return 响应数据的 Future
+     */
     public CompletableFuture<Packet> routeToBackend(Packet packet) {
         String serviceName = extractServiceName(packet);
         if (serviceName == null) {
@@ -201,6 +302,13 @@ public class PacketRouter {
         return future;
     }
     
+    /**
+     * 路由数据包到前端连接。
+     *
+     * <p>将数据包编码为 WebSocket 二进制帧，发送到指定的前端连接。
+     *
+     * @param packet 待路由的数据包
+     */
     public void routeToFrontend(Packet packet) {
         long targetId = packet.getTargetId();
         Channel channel = frontendConnections.get(targetId);
@@ -213,6 +321,13 @@ public class PacketRouter {
         }
     }
     
+    /**
+     * 广播数据包到所有前端连接。
+     *
+     * <p>使用零拷贝技术（retainedSlice）高效广播相同的消息到所有活跃连接。
+     *
+     * @param packet 待广播的数据包
+     */
     public void broadcast(Packet packet) {
         List<Channel> activeChannels = new ArrayList<>();
         for (Channel channel : frontendConnections.values()) {
@@ -360,24 +475,51 @@ public class PacketRouter {
         return clusterForwarder != null;
     }
     
+    /**
+     * 处理订阅请求。
+     *
+     * @param topic Topic 名称
+     * @param connectionId 连接 ID
+     */
     public void handleSubscribe(String topic, long connectionId) {
         topicSubscription.subscribe(topic, connectionId);
         topicStatsManager.recordSubscribe(topic);
     }
     
+    /**
+     * 处理取消订阅请求。
+     *
+     * @param topic Topic 名称
+     * @param connectionId 连接 ID
+     */
     public void handleUnsubscribe(String topic, long connectionId) {
         topicSubscription.unsubscribe(topic, connectionId);
         topicStatsManager.recordUnsubscribe(topic);
     }
     
+    /**
+     * 获取 Topic 订阅管理器。
+     *
+     * @return Topic 订阅管理器
+     */
     public TopicSubscription getTopicSubscription() {
         return topicSubscription;
     }
     
+    /**
+     * 获取背压管理器。
+     *
+     * @return 背压管理器
+     */
     public BackpressureManager getBackpressureManager() {
         return backpressureManager;
     }
     
+    /**
+     * 获取响应映射管理器。
+     *
+     * @return 响应映射管理器
+     */
     public ResponseMapping getResponseMapping() {
         return responseMapping;
     }
@@ -402,6 +544,11 @@ public class PacketRouter {
         return topic;
     }
     
+    /**
+     * 关闭路由器。
+     * 
+     * <p>清理所有连接、订阅和背压状态。
+     */
     public void shutdown() {
         responseMapping.shutdown();
         topicSubscription.clear();

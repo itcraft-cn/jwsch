@@ -81,16 +81,33 @@ public final class BackpressureManager {
     private volatile long lastActivateTime = 0;
     private volatile EventLoop scheduledEventLoop = null;
     
+    /**
+     * 注册 TCP 通道（发布者通道）。
+     *
+     * @param channel TCP 通道
+     */
     public void registerTcpChannel(Channel channel) {
         tcpChannels.add(channel);
         LOGGER.debug("TCP channel registered: {}", channel);
     }
     
+    /**
+     * 注销 TCP 通道。
+     *
+     * @param channel TCP 通道
+     */
     public void unregisterTcpChannel(Channel channel) {
         tcpChannels.remove(channel);
         LOGGER.debug("TCP channel unregistered: {}", channel);
     }
     
+    /**
+     * 注册前端通道（订阅者通道）。
+     *
+     * <p>注册时会检查通道的可写状态并更新不可写计数。
+     *
+     * @param channel 前端通道
+     */
     public void registerFrontendChannel(Channel channel) {
         frontendChannels.add(channel);
         if (!channel.isWritable()) {
@@ -100,6 +117,13 @@ public final class BackpressureManager {
             channel.isWritable(), nonWritableCount.get());
     }
     
+    /**
+     * 注销前端通道。
+     *
+     * <p>注销时会更新不可写计数，并安排一次背压释放检查。
+     *
+     * @param channel 前端通道
+     */
     public void unregisterFrontendChannel(Channel channel) {
         frontendChannels.remove(channel);
         if (!channel.isWritable()) {
@@ -229,22 +253,47 @@ public final class BackpressureManager {
         scheduledEventLoop = null;
     }
     
+    /**
+     * 获取已注册的 TCP 通道数量。
+     *
+     * @return TCP 通道数量
+     */
     public int getTcpChannelCount() {
         return tcpChannels.size();
     }
     
+    /**
+     * 获取已注册的前端通道数量。
+     *
+     * @return 前端通道数量
+     */
     public int getFrontendChannelCount() {
         return frontendChannels.size();
     }
     
+    /**
+     * 获取不可写的前端通道数量。
+     *
+     * @return 不可写通道数量
+     */
     public int getNonWritableCount() {
         return nonWritableCount.get();
     }
     
+    /**
+     * 检查背压是否激活（即 AUTO_READ 是否被禁用）。
+     *
+     * @return 背压是否激活
+     */
     public boolean isAutoReadDisabled() {
         return autoReadDisabled.get();
     }
     
+    /**
+     * 清空所有通道并重置背压状态。
+     * 
+     * <p>用于服务器关闭或重置场景。
+     */
     public void clear() {
         tcpChannels.clear();
         frontendChannels.clear();

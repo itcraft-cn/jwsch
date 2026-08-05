@@ -1,5 +1,15 @@
 package cn.itcraft.jwsch.srv.metrics;
 
+/**
+ * MetricsServer 是提供 Prometheus 格式指标暴露的 HTTP 服务器。
+ * 
+ * <p>基于 Netty 实现，监听指定端口，当访问配置的路径时返回指标数据。
+ * 支持使用共享 EventLoopGroup 或独立创建。
+ * 
+ * @author itcraft
+ * @since 1.0
+ */
+
 import cn.itcraft.jwsch.srv.config.MetricsConfig;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.Unpooled;
@@ -45,12 +55,26 @@ public class MetricsServer {
     private Channel serverChannel;
     private volatile boolean started = false;
     
+    /**
+     * 构造函数，创建独立 EventLoopGroup 的指标服务器。
+     *
+     * @param config 指标配置
+     * @param serverMetrics 指标收集器
+     */
     public MetricsServer(MetricsConfig config, ServerMetrics serverMetrics) {
         this.config = config;
         this.serverMetrics = serverMetrics;
         this.ownsEventLoop = true;
     }
     
+    /**
+     * 构造函数，使用共享 EventLoopGroup 的指标服务器。
+     *
+     * @param config 指标配置
+     * @param serverMetrics 指标收集器
+     * @param bossGroup 共享的 boss EventLoopGroup
+     * @param workerGroup 共享的 worker EventLoopGroup
+     */
     public MetricsServer(MetricsConfig config, ServerMetrics serverMetrics, 
                         EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
         this.config = config;
@@ -60,6 +84,11 @@ public class MetricsServer {
         this.ownsEventLoop = false;
     }
     
+    /**
+     * 启动指标服务器。
+     * 
+     * <p>如果已启动则忽略重复调用。启动后会绑定配置的端口并开始监听 HTTP 请求。
+     */
     public void start() {
         if (started) {
             LOGGER.warn("MetricsServer already started");
@@ -102,6 +131,11 @@ public class MetricsServer {
         }
     }
     
+    /**
+     * 关闭指标服务器。
+     * 
+     * <p>如果未启动则无操作。关闭时会优雅停止 EventLoopGroup（如果是独立创建的）。
+     */
     public void shutdown() {
         if (!started) {
             return;
@@ -126,10 +160,20 @@ public class MetricsServer {
         LOGGER.info("MetricsServer shutdown");
     }
     
+    /**
+     * 检查指标服务器是否已启动。
+     *
+     * @return 是否已启动
+     */
     public boolean isStarted() {
         return started;
     }
     
+    /**
+     * 获取指标服务器的监听端口。
+     *
+     * @return 监听端口
+     */
     public int getPort() {
         return config.getPort();
     }

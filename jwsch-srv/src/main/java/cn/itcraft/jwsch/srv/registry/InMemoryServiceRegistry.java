@@ -1,5 +1,15 @@
 package cn.itcraft.jwsch.srv.registry;
 
+/**
+ * InMemoryServiceRegistry 是 ServiceRegistry 接口的内存实现。
+ * 
+ * <p>使用 ConcurrentHashMap 存储服务实例，支持线程安全的注册、注销和查询。
+ * 提供订阅/通知机制，当服务实例变化时通知监听器。
+ * 
+ * @author itcraft
+ * @since 1.0
+ */
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,11 +27,17 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
     private final Map<String, CopyOnWriteArrayList<ServiceInstance>> serviceMap;
     private final Map<String, CopyOnWriteArrayList<ServiceChangeListener>> listenerMap;
     
+    /**
+     * 默认构造函数，初始化空的服务映射和监听器映射。
+     */
     public InMemoryServiceRegistry() {
         this.serviceMap = new ConcurrentHashMap<>();
         this.listenerMap = new ConcurrentHashMap<>();
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void register(ServiceInstance instance) {
         String serviceName = instance.getServiceName();
@@ -33,6 +49,9 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
         notifyListeners(serviceName);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void unregister(ServiceInstance instance) {
         String serviceName = instance.getServiceName();
@@ -50,6 +69,9 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
         notifyListeners(serviceName);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<ServiceInstance> getInstances(String serviceName) {
         CopyOnWriteArrayList<ServiceInstance> instances = serviceMap.get(serviceName);
@@ -67,6 +89,9 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
         return available;
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<ServiceInstance> getAllInstances() {
         List<ServiceInstance> all = new ArrayList<>();
@@ -76,6 +101,9 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
         return all;
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void subscribe(String serviceName, ServiceChangeListener listener) {
         listenerMap.computeIfAbsent(serviceName, k -> new CopyOnWriteArrayList<>())
@@ -83,6 +111,9 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
         LOGGER.debug("Listener subscribed for service: {}", serviceName);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void unsubscribe(String serviceName, ServiceChangeListener listener) {
         CopyOnWriteArrayList<ServiceChangeListener> listeners = listenerMap.get(serviceName);
@@ -108,10 +139,21 @@ public class InMemoryServiceRegistry implements ServiceRegistry {
         }
     }
     
+    /**
+     * 获取当前注册的服务数量（不同服务名的数量）。
+     *
+     * @return 服务数量
+     */
     public int getServiceCount() {
         return serviceMap.size();
     }
     
+    /**
+     * 获取指定服务名的实例数量。
+     *
+     * @param serviceName 服务名
+     * @return 实例数量，如果服务不存在则返回 0
+     */
     public int getInstanceCount(String serviceName) {
         CopyOnWriteArrayList<ServiceInstance> instances = serviceMap.get(serviceName);
         return instances != null ? instances.size() : 0;
