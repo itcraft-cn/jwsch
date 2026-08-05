@@ -14,6 +14,12 @@ public class RandomSelector implements NodeSelector {
 
     private final Random random = new Random();
 
+    /**
+     * Selects a node address using random strategy.
+     *
+     * @param candidates list of candidate addresses
+     * @return randomly selected address, or null if candidates is empty
+     */
     @Override
     public InetSocketAddress select(List<InetSocketAddress> candidates) {
         if (candidates == null || candidates.isEmpty()) {
@@ -24,10 +30,20 @@ public class RandomSelector implements NodeSelector {
         return candidates.get(index);
     }
 
+    /**
+     * No-op for random selector.
+     *
+     * @param address the address that succeeded
+     */
     @Override
     public void onConnectSuccess(InetSocketAddress address) {
     }
 
+    /**
+     * No-op for random selector.
+     *
+     * @param address the address that failed
+     */
     @Override
     public void onConnectFailed(InetSocketAddress address) {
     }

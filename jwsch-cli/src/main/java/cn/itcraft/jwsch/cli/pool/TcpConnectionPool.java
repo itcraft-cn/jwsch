@@ -45,10 +45,18 @@ public class TcpConnectionPool {
     /** 每个服务的最大连接数 */
     private final int maxConnectionsPerService;
     
+    /**
+     * Creates a TCP connection pool with default max connections per service (10).
+     */
     public TcpConnectionPool() {
         this(10);
     }
     
+    /**
+     * Creates a TCP connection pool with specified max connections per service.
+     *
+     * @param maxConnectionsPerService maximum connections per service
+     */
     public TcpConnectionPool(int maxConnectionsPerService) {
         this.channelArrays = new ConcurrentHashMap<>();
         this.counters = new ConcurrentHashMap<>();

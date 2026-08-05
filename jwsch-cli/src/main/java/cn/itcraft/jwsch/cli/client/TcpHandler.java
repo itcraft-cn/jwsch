@@ -42,10 +42,18 @@ public class TcpHandler extends SimpleChannelInboundHandler<Packet> {
     private volatile ScheduledFuture<?> heartbeatTimeoutFuture;
     private final AtomicInteger retryCount = new AtomicInteger(0);
     
+    /**
+     * Creates a TcpHandler with default configuration.
+     */
     public TcpHandler() {
         this(new TcpClientConfig());
     }
     
+    /**
+     * Creates a TcpHandler with specified configuration.
+     *
+     * @param config TCP client configuration
+     */
     public TcpHandler(TcpClientConfig config) {
         this.config = config;
     }
@@ -148,6 +156,11 @@ public class TcpHandler extends SimpleChannelInboundHandler<Packet> {
         ctx.close();
     }
     
+    /**
+     * Returns the connection ID assigned by server.
+     *
+     * @return connection ID, 0 if not yet assigned
+     */
     public long getConnectionId() {
         return connectionId;
     }

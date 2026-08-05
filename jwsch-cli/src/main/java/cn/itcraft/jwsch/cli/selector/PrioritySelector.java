@@ -24,6 +24,16 @@ public class PrioritySelector implements NodeSelector {
 
     private final ConcurrentHashMap<InetSocketAddress, AtomicInteger> failureCounts = new ConcurrentHashMap<>();
 
+    /**
+     * Selects a node address using priority strategy.
+     *
+     * <p>Always tries base-port node first. Falls back to other nodes if base-port
+     * has exceeded max failures. If all nodes have exceeded max failures,
+     * returns base-port node anyway.
+     *
+     * @param candidates list of candidate addresses
+     * @return selected address, or null if candidates is empty
+     */
     @Override
     public InetSocketAddress select(List<InetSocketAddress> candidates) {
         if (candidates == null || candidates.isEmpty()) {
@@ -49,6 +59,11 @@ public class PrioritySelector implements NodeSelector {
         return basePortAddress;
     }
 
+    /**
+     * Resets failure count for the successfully connected address.
+     *
+     * @param address the address that succeeded
+     */
     @Override
     public void onConnectSuccess(InetSocketAddress address) {
         AtomicInteger failures = failureCounts.get(address);
@@ -57,6 +72,11 @@ public class PrioritySelector implements NodeSelector {
         }
     }
 
+    /**
+     * Increments failure count for the failed address.
+     *
+     * @param address the address that failed
+     */
     @Override
     public void onConnectFailed(InetSocketAddress address) {
         failureCounts.computeIfAbsent(address, k -> new AtomicInteger(0)).incrementAndGet();

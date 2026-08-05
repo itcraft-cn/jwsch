@@ -113,6 +113,12 @@ public final class TcpClient {
      * <p>Initializes EventLoop and Bootstrap. If cluster mode is configured,
      * resolves node addresses and creates the NodeSelector.
      */
+    /**
+     * Start the client.
+     *
+     * <p>Initializes EventLoop and Bootstrap. If cluster mode is configured,
+     * resolves node addresses and creates the NodeSelector.
+     */
     public void start() {
         if (sharedEventLoop) {
             workerGroup = SharedEventLoopManager.getClientInstance().acquireWorkerGroup();
@@ -163,6 +169,16 @@ public final class TcpClient {
      * a flat list of InetSocketAddress. Base-port addresses come first
      * to support PrioritySelector's preference.
      */
+    /**
+     * Resolve cluster node addresses from config.
+     *
+     * <p>Expands nodes x [basePort .. basePort+portRange-1] into
+     * a flat list of InetSocketAddress. Base-port addresses come first
+     * to support PrioritySelector's preference.
+     *
+     * @param tcpConfig TCP client configuration
+     * @return list of resolved addresses
+     */
     List<InetSocketAddress> resolveAddresses(TcpClientConfig tcpConfig) {
         List<String> nodes = tcpConfig.getNodes();
         int basePort = tcpConfig.getBasePort();
@@ -182,6 +198,12 @@ public final class TcpClient {
 
     /**
      * Create NodeSelector based on selector type string.
+     */
+    /**
+     * Create NodeSelector based on selector type string.
+     *
+     * @param selectorType selector type: "random", "round-robin", "priority", "single"
+     * @return NodeSelector instance
      */
     NodeSelector createNodeSelector(String selectorType) {
         if (selectorType == null) {
@@ -320,10 +342,20 @@ public final class TcpClient {
      *
      * @return active Channel, or null if not connected
      */
+    /**
+     * Get the active cluster channel.
+     *
+     * @return active Channel, or null if not connected
+     */
     public Channel getActiveChannel() {
         return activeChannel;
     }
 
+    /**
+     * Get the resolved cluster addresses.
+     *
+     * @return unmodifiable list of addresses
+     */
     /**
      * Get the resolved cluster addresses.
      *
@@ -335,6 +367,11 @@ public final class TcpClient {
 
     /**
      * Get the NodeSelector.
+     */
+    /**
+     * Get the NodeSelector.
+     *
+     * @return NodeSelector instance
      */
     public NodeSelector getNodeSelector() {
         return nodeSelector;
@@ -369,6 +406,11 @@ public final class TcpClient {
         }
     }
 
+    /**
+     * Checks if SSL is enabled for this client.
+     *
+     * @return true if SSL context is configured
+     */
     public boolean isSslEnabled() {
         return sslContext != null;
     }

@@ -33,14 +33,28 @@ public final class TcpClientInitializer extends ChannelInitializer<SocketChannel
     private final SslContext sslContext;
     private final TcpClientConfig config;
     
+    /**
+     * Creates a TcpClientInitializer with no SSL and default configuration.
+     */
     public TcpClientInitializer() {
         this(null, new TcpClientConfig());
     }
     
+    /**
+     * Creates a TcpClientInitializer with SSL and default configuration.
+     *
+     * @param sslContext SSL context, null to disable SSL
+     */
     public TcpClientInitializer(SslContext sslContext) {
         this(sslContext, new TcpClientConfig());
     }
     
+    /**
+     * Creates a TcpClientInitializer with SSL and configuration.
+     *
+     * @param sslContext SSL context, null to disable SSL
+     * @param config TCP client configuration
+     */
     public TcpClientInitializer(SslContext sslContext, TcpClientConfig config) {
         this.sslContext = sslContext;
         this.config = config;
