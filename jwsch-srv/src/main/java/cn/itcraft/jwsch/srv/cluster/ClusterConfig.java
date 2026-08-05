@@ -64,114 +64,198 @@ public class ClusterConfig {
         this.bindPort = -1;
     }
     
+    /**
+     * Returns whether cluster mode is enabled.
+     */
     public boolean isEnabled() {
         return enabled;
     }
     
+    /**
+     * Sets whether cluster mode is enabled.
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
     
+    /**
+     * Returns node prefix for node ID generation.
+     */
     public String getNodePrefix() {
         return nodePrefix;
     }
     
+    /**
+     * Sets node prefix for node ID generation.
+     */
     public void setNodePrefix(String nodePrefix) {
         this.nodePrefix = nodePrefix;
     }
     
+    /**
+     * Returns base port for cluster communication.
+     */
     public int getBasePort() {
         return basePort;
     }
     
+    /**
+     * Sets base port for cluster communication.
+     */
     public void setBasePort(int basePort) {
         this.basePort = basePort;
     }
     
+    /**
+     * Returns port range for dynamic port allocation.
+     */
     public int getPortRange() {
         return portRange;
     }
     
+    /**
+     * Sets port range for dynamic port allocation.
+     */
     public void setPortRange(int portRange) {
         this.portRange = portRange;
     }
     
+    /**
+     * Returns startup wait time in seconds.
+     */
     public int getStartupWaitSeconds() {
         return startupWaitSeconds;
     }
     
+    /**
+     * Sets startup wait time in seconds.
+     */
     public void setStartupWaitSeconds(int startupWaitSeconds) {
         this.startupWaitSeconds = startupWaitSeconds;
     }
     
+    /**
+     * Returns cluster sync interval in seconds.
+     */
     public int getSyncIntervalSeconds() {
         return syncIntervalSeconds;
     }
     
+    /**
+     * Sets cluster sync interval in seconds.
+     */
     public void setSyncIntervalSeconds(int syncIntervalSeconds) {
         this.syncIntervalSeconds = syncIntervalSeconds;
     }
     
+    /**
+     * Returns heartbeat interval in seconds.
+     */
     public int getHeartbeatIntervalSeconds() {
         return heartbeatIntervalSeconds;
     }
     
+    /**
+     * Sets heartbeat interval in seconds.
+     */
     public void setHeartbeatIntervalSeconds(int heartbeatIntervalSeconds) {
         this.heartbeatIntervalSeconds = heartbeatIntervalSeconds;
     }
     
+    /**
+     * Returns heartbeat timeout in seconds.
+     */
     public int getHeartbeatTimeoutSeconds() {
         return heartbeatTimeoutSeconds;
     }
     
+    /**
+     * Sets heartbeat timeout in seconds.
+     */
     public void setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds) {
         this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
     }
     
+    /**
+     * Returns connection timeout in milliseconds.
+     */
     public int getConnectionTimeoutMs() {
         return connectionTimeoutSeconds * 1000;
     }
     
+    /**
+     * Sets connection timeout in seconds.
+     */
     public void setConnectionTimeoutSeconds(int connectionTimeoutSeconds) {
         this.connectionTimeoutSeconds = connectionTimeoutSeconds;
     }
     
+    /**
+     * Returns cluster node configurations.
+     */
     public List<NodeConfig> getNodes() {
         return Collections.unmodifiableList(nodes);
     }
     
+    /**
+     * Sets cluster node configurations.
+     */
     public void setNodes(List<NodeConfig> nodes) {
         this.nodes = nodes != null ? new ArrayList<>(nodes) : new ArrayList<>();
     }
     
+    /**
+     * Returns WebSocket server port.
+     */
     public int getWebsocketPort() {
         return websocketPort;
     }
     
+    /**
+     * Sets WebSocket server port.
+     */
     public void setWebsocketPort(int websocketPort) {
         this.websocketPort = websocketPort;
     }
     
+    /**
+     * Returns HTTP server port.
+     */
     public int getHttpPort() {
         return httpPort;
     }
     
+    /**
+     * Sets HTTP server port.
+     */
     public void setHttpPort(int httpPort) {
         this.httpPort = httpPort;
     }
     
+    /**
+     * Returns bind port for cluster communication.
+     */
     public int getBindPort() {
         return bindPort;
     }
     
+    /**
+     * Sets bind port for cluster communication.
+     */
     public void setBindPort(int bindPort) {
         this.bindPort = bindPort;
     }
     
+    /**
+     * Returns cluster port (bind port if set, otherwise base port).
+     */
     public int getClusterPort() {
         return bindPort > 0 ? bindPort : basePort;
     }
     
+    /**
+     * Returns advertise host (JVM param > env var > auto-detected).
+     */
     public String getAdvertiseHost() {
         if (advertiseHost == null) {
             advertiseHost = resolveAdvertiseHost();
@@ -179,6 +263,9 @@ public class ClusterConfig {
         return advertiseHost;
     }
     
+    /**
+     * Sets advertise host (overrides auto-detection).
+     */
     public void setAdvertiseHost(String advertiseHost) {
         this.advertiseHost = advertiseHost;
     }
@@ -277,6 +364,9 @@ public class ClusterConfig {
             this.host = host;
         }
         
+        /**
+         * Returns host address for cluster node.
+         */
         public String getHost() {
             return host;
         }
