@@ -8,14 +8,17 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 流量控制指标收集器。
+ * Flow control metrics collector.
  *
- * <p>统一收集三层流量控制指标：
+ * <p>Unified collection of three-layer flow control metrics:
  * <ul>
- *   <li>L1 入口限速：丢弃数、当前速率</li>
- *   <li>L2 背压管理：激活状态、非可写连接数</li>
- *   <li>L3 出站缓冲：队列大小、丢弃数、溢出次数</li>
+ *   <li>L1 Inbound rate limiting: dropped packets count, current rate</li>
+ *   <li>L2 Backpressure management: active status, non-writable connections count</li>
+ *   <li>L3 Outbound buffering: queue size, dropped packets count, overflow events</li>
  * </ul>
+ *
+ * <p>All metrics are registered with Micrometer and can be exported to monitoring systems
+ * like Prometheus, Graphite, or InfluxDB.
  */
 public final class FlowControlMetrics {
     
@@ -32,6 +35,11 @@ public final class FlowControlMetrics {
     private final AtomicLong outboundQueueSize = new AtomicLong(0);
     private final Counter outboundOverflow;
     
+    /**
+     * Creates a FlowControlMetrics instance with the specified MeterRegistry.
+     *
+     * @param meterRegistry the Micrometer MeterRegistry for metrics registration
+     */
     public FlowControlMetrics(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
         
@@ -68,80 +76,167 @@ public final class FlowControlMetrics {
             .register(meterRegistry);
     }
     
+    /**
+     * Records a single inbound dropped packet.
+     */
     public void recordInboundDropped() {
         inboundDropped.increment();
     }
     
+    /**
+     * Records multiple inbound dropped packets.
+     *
+     * @param count the number of dropped packets to record
+     */
     public void recordInboundDropped(int count) {
         inboundDropped.increment(count);
     }
     
+    /**
+     * Sets the current inbound rate limit.
+     *
+     * @param rate the current inbound rate limit in tokens per second
+     */
     public void setInboundRate(long rate) {
         inboundRate.set(rate);
     }
     
+    /**
+     * Sets the backpressure active status.
+     *
+     * @param active true if backpressure is active, false otherwise
+     */
     public void setBackpressureActive(boolean active) {
         backpressureActive.set(active ? 1 : 0);
     }
     
+    /**
+     * Sets the count of non-writable frontend connections.
+     *
+     * @param count the number of non-writable connections
+     */
     public void setNonWritableCount(int count) {
         nonWritableCount.set(count);
     }
     
+    /**
+     * Records a single topic-level dropped packet.
+     */
     public void recordTopicDropped() {
         topicDropped.increment();
     }
     
+    /**
+     * Records multiple topic-level dropped packets.
+     *
+     * @param count the number of dropped packets to record
+     */
     public void recordTopicDropped(int count) {
         topicDropped.increment(count);
     }
     
+    /**
+     * Records a single outbound dropped packet.
+     */
     public void recordOutboundDropped() {
         outboundDropped.increment();
     }
     
+    /**
+     * Records multiple outbound dropped packets.
+     *
+     * @param count the number of dropped packets to record
+     */
     public void recordOutboundDropped(int count) {
         outboundDropped.increment(count);
     }
     
+    /**
+     * Sets the current outbound buffer queue size.
+     *
+     * @param size the current queue size
+     */
     public void setOutboundQueueSize(int size) {
         outboundQueueSize.set(size);
     }
     
+    /**
+     * Records an outbound buffer overflow event.
+     */
     public void recordOutboundOverflow() {
         outboundOverflow.increment();
     }
     
+    /**
+     * Updates metrics from a BackpressureManager instance.
+     *
+     * @param manager the BackpressureManager to read data from
+     */
     public void updateFromBackpressureManager(BackpressureManager manager) {
         setBackpressureActive(manager.isAutoReadDisabled());
         setNonWritableCount(manager.getNonWritableCount());
     }
     
+    /**
+     * Updates metrics from a TopicBackpressureManager instance.
+     *
+     * @param manager the TopicBackpressureManager to read data from
+     */
     public void updateFromTopicBackpressureManager(TopicBackpressureManager manager) {
         long dropCount = manager.getBackpressureDropCount();
         recordTopicDropped((int) dropCount);
     }
     
+    /**
+     * Updates metrics from an OutboundBufferHandler instance.
+     *
+     * @param handler the OutboundBufferHandler to read data from
+     */
     public void updateFromOutboundBufferHandler(OutboundBufferHandler handler) {
         setOutboundQueueSize(handler.getQueueSize());
     }
     
+    /**
+     * Returns the MeterRegistry used by this metrics collector.
+     *
+     * @return the MeterRegistry instance
+     */
     public MeterRegistry getMeterRegistry() {
         return meterRegistry;
     }
     
+    /**
+     * Returns the total count of inbound dropped packets.
+     *
+     * @return the inbound dropped packets count
+     */
     public double getInboundDroppedCount() {
         return inboundDropped.count();
     }
     
+    /**
+     * Returns the total count of topic-level dropped packets.
+     *
+     * @return the topic dropped packets count
+     */
     public double getTopicDroppedCount() {
         return topicDropped.count();
     }
     
+    /**
+     * Returns the total count of outbound dropped packets.
+     *
+     * @return the outbound dropped packets count
+     */
     public double getOutboundDroppedCount() {
         return outboundDropped.count();
     }
     
+    /**
+     * Returns the total count of outbound buffer overflow events.
+     *
+     * @return the outbound overflow events count
+     */
     public double getOutboundOverflowCount() {
         return outboundOverflow.count();
     }

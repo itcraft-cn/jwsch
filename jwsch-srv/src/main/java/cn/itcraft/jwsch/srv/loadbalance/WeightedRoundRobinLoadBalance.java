@@ -7,6 +7,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Weighted round-robin load balancer implementation.
+ *
+ * <p>Distributes requests based on instance weights, where higher-weighted
+ * instances receive more requests proportionally.
+ *
+ * <p>Algorithm:
+ * <ol>
+ *   <li>Calculate total weight of all instances</li>
+ *   <li>Select instance based on weight distribution</li>
+ *   <li>Fall back to plain round-robin if weights are invalid</li>
+ * </ol>
+ *
+ * <p>Useful for heterogeneous environments where instances have different
+ * capacities or performance characteristics.
+ */
 public class WeightedRoundRobinLoadBalance implements LoadBalance {
     
     private final ConcurrentMap<String, AtomicInteger> counterMap = new ConcurrentHashMap<>();
@@ -59,10 +75,18 @@ public class WeightedRoundRobinLoadBalance implements LoadBalance {
         return "weightedRoundRobin";
     }
     
+    /**
+     * Resets the weighted round-robin counter for a specific service.
+     *
+     * @param serviceName the service name
+     */
     public void reset(String serviceName) {
         counterMap.remove(serviceName);
     }
     
+    /**
+     * Resets all weighted round-robin counters.
+     */
     public void resetAll() {
         counterMap.clear();
     }

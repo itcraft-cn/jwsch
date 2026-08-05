@@ -11,16 +11,19 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * 入口限速Handler（L1）。
+ * Inbound rate limiter handler (L1).
  *
- * <p>在TCP入站处限制消息速率，保护服务端不被突发流量打垮。
+ * <p>Limits message rate at TCP inbound to protect the server from burst traffic.
  * 
- * <p>使用令牌桶算法：
+ * <p>Uses token bucket algorithm:
  * <ul>
- *   <li>每个连接独立限速</li>
- *   <li>支持突发流量（burstSize）</li>
- *   <li>超限消息被丢弃并记录指标</li>
+ *   <li>Independent rate limiting per connection</li>
+ *   <li>Supports burst traffic (burstSize)</li>
+ *   <li>Excess messages are dropped and metrics recorded</li>
  * </ul>
+ *
+ * <p>This is the first layer (L1) in the three-layer flow control system.
+ * When enabled, it checks every incoming packet against the rate limiter.
  */
 public final class InboundRateLimiterHandler extends ChannelDuplexHandler {
     
@@ -30,6 +33,11 @@ public final class InboundRateLimiterHandler extends ChannelDuplexHandler {
     private final LongAdder droppedCount;
     private volatile boolean enabled;
     
+    /**
+     * Creates an InboundRateLimiterHandler with the specified configuration.
+     *
+     * @param config the flow control configuration
+     */
     public InboundRateLimiterHandler(FlowControlConfig config) {
         this.enabled = config.isInboundEnabled();
         this.rateLimiter = RateLimiter.create(
@@ -61,22 +69,45 @@ public final class InboundRateLimiterHandler extends ChannelDuplexHandler {
         }
     }
     
+    /**
+     * Enables or disables the rate limiter.
+     *
+     * @param enabled true to enable rate limiting, false to disable
+     */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
     
+    /**
+     * Returns whether the rate limiter is currently enabled.
+     *
+     * @return true if rate limiting is enabled, false otherwise
+     */
     public boolean isEnabled() {
         return enabled;
     }
     
+    /**
+     * Returns the total count of dropped packets.
+     *
+     * @return the number of packets dropped due to rate limiting
+     */
     public long getDroppedCount() {
         return droppedCount.sum();
     }
     
+    /**
+     * Resets the dropped packet counter to zero.
+     */
     public void resetDroppedCount() {
         droppedCount.reset();
     }
     
+    /**
+     * Returns the current rate limit in tokens per second.
+     *
+     * @return the current rate limit (tokens/sec)
+     */
     public double getCurrentRate() {
         return rateLimiter.getCurrentRate();
     }

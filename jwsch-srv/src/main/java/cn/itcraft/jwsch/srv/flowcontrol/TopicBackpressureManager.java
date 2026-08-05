@@ -11,17 +11,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * Topic级别背压管理器。
+ * Topic-level backpressure manager.
  *
- * <p>实现per-topic背压隔离，一个慢Topic不拖垮其他Topic。
+ * <p>Implements per-topic backpressure isolation, ensuring a slow topic
+ * doesn't affect other topics.
  * 
- * <p>工作原理：
+ * <p>How it works:
  * <pre>
- * 当某Topic的订阅者不可写比例超过阈值时：
- * 1. 标记该Topic为背压状态
- * 2. PacketRouter.broadcastToTopic() 检查背压状态
- * 3. 背压Topic的消息被丢弃，其他Topic正常投递
+ * When the proportion of non-writable subscribers for a topic exceeds threshold:
+ * 1. Mark the topic as backpressured
+ * 2. PacketRouter.broadcastToTopic() checks backpressure status
+ * 3. Messages for backpressured topics are dropped, other topics deliver normally
  * </pre>
+ *
+ * <p>This is the second layer (L2) in the three-layer flow control system,
+ * providing topic-level isolation to prevent a single slow topic from
+ * affecting the entire system.
  */
 public final class TopicBackpressureManager {
     
@@ -33,6 +38,12 @@ public final class TopicBackpressureManager {
     private final double releaseThreshold;
     private final LongAdder backpressureDropCount;
     
+    /**
+     * Creates a TopicBackpressureManager with the specified configuration.
+     *
+     * @param topicSubscription the topic subscription manager
+     * @param config the flow control configuration
+     */
     public TopicBackpressureManager(TopicSubscription topicSubscription, FlowControlConfig config) {
         this.topicStates = new ConcurrentHashMap<>();
         this.topicSubscription = topicSubscription;
@@ -41,15 +52,34 @@ public final class TopicBackpressureManager {
         this.backpressureDropCount = new LongAdder();
     }
     
+    /**
+     * Checks if a topic (by hash) is currently backpressured.
+     *
+     * @param topicHash the topic hash to check
+     * @return true if the topic is backpressured, false otherwise
+     */
     public boolean isTopicBackpressured(long topicHash) {
         TopicBackpressureState state = topicStates.get(topicHash);
         return state != null && state.isBackpressured();
     }
     
+    /**
+     * Checks if a topic (by name) is currently backpressured.
+     *
+     * @param topic the topic name to check
+     * @return true if the topic is backpressured, false otherwise
+     */
     public boolean isTopicBackpressured(String topic) {
         return isTopicBackpressured(hashTopic(topic));
     }
     
+    /**
+     * Updates subscriber writability state for a topic.
+     *
+     * @param topicHash the topic hash
+     * @param connectionId the connection ID
+     * @param writable true if the subscriber is writable, false otherwise
+     */
     public void onSubscriberWritabilityChanged(long topicHash, long connectionId, boolean writable) {
         topicStates.compute(topicHash, (k, state) -> {
             if (state == null) {
@@ -66,23 +96,48 @@ public final class TopicBackpressureManager {
         });
     }
     
+    /**
+     * Updates subscriber writability state for a topic.
+     *
+     * @param topic the topic name
+     * @param connectionId the connection ID
+     * @param writable true if the subscriber is writable, false otherwise
+     */
     public void onSubscriberWritabilityChanged(String topic, long connectionId, boolean writable) {
         onSubscriberWritabilityChanged(hashTopic(topic), connectionId, writable);
     }
     
+    /**
+     * Increments the drop counter for a topic when a packet is dropped due to backpressure.
+     *
+     * @param topicHash the topic hash
+     */
     public void incrementTopicDrop(long topicHash) {
         backpressureDropCount.increment();
         LOGGER.debug("Topic backpressure drop: topicHash={}", topicHash);
     }
     
+    /**
+     * Returns the total count of packets dropped due to topic backpressure.
+     *
+     * @return the total drop count
+     */
     public long getBackpressureDropCount() {
         return backpressureDropCount.sum();
     }
     
+    /**
+     * Returns the number of topics being tracked.
+     *
+     * @return the count of topic states
+     */
     public int getTopicStateCount() {
         return topicStates.size();
     }
     
+    /**
+     * Clears all topic states and resets the drop counter.
+     */
     public void clear() {
         topicStates.clear();
         backpressureDropCount.reset();

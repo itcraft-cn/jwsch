@@ -5,6 +5,16 @@ import cn.itcraft.jwsch.srv.registry.ServiceInstance;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Random load balancer implementation.
+ *
+ * <p>Selects service instances randomly from the available list.
+ * Provides uniform distribution but no session stickiness or
+ * consideration of instance load.
+ *
+ * <p>Simple and effective for stateless services where each request
+ * is independent.
+ */
 public class RandomLoadBalance implements LoadBalance {
     
     private final Random random = new Random();

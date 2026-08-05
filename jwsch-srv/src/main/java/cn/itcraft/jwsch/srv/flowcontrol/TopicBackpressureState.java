@@ -5,9 +5,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Topic背压状态。
+ * Topic backpressure state.
  *
- * <p>跟踪单个Topic的订阅者可写状态，用于per-topic背压隔离。
+ * <p>Tracks writability state of subscribers for a single topic,
+ * used for per-topic backpressure isolation.
+ *
+ * <p>Maintains counts of non-writable subscribers and triggers
+ * backpressure when the proportion exceeds the configured threshold.
  */
 final class TopicBackpressureState {
     
@@ -21,6 +25,13 @@ final class TopicBackpressureState {
     private final double triggerThreshold;
     private final double releaseThreshold;
     
+    /**
+     * Creates a TopicBackpressureState for the specified topic.
+     *
+     * @param topicHash the topic hash
+     * @param triggerThreshold the threshold to activate backpressure (0.0-1.0)
+     * @param releaseThreshold the threshold to release backpressure (0.0-1.0)
+     */
     TopicBackpressureState(long topicHash, double triggerThreshold, double releaseThreshold) {
         this.topicHash = topicHash;
         this.nonWritableSubscribers = ConcurrentHashMap.newKeySet();
@@ -29,14 +40,26 @@ final class TopicBackpressureState {
         this.releaseThreshold = releaseThreshold;
     }
     
+    /**
+     * Increments the total subscriber count.
+     */
     void incrementSubscribers() {
         totalSubscribers.incrementAndGet();
     }
     
+    /**
+     * Decrements the total subscriber count.
+     */
     void decrementSubscribers() {
         totalSubscribers.decrementAndGet();
     }
     
+    /**
+     * Updates the writability state for a subscriber.
+     *
+     * @param connectionId the connection ID
+     * @param writable true if the subscriber is writable, false otherwise
+     */
     void updateSubscriberState(long connectionId, boolean writable) {
         if (writable) {
             nonWritableSubscribers.remove(connectionId);
@@ -47,22 +70,47 @@ final class TopicBackpressureState {
         }
     }
     
+    /**
+     * Removes a subscriber from tracking.
+     *
+     * @param connectionId the connection ID
+     */
     void removeSubscriber(long connectionId) {
         nonWritableSubscribers.remove(connectionId);
     }
     
+    /**
+     * Returns whether the topic is currently backpressured.
+     *
+     * @return true if backpressure is active, false otherwise
+     */
     boolean isBackpressured() {
         return backpressured;
     }
     
+    /**
+     * Returns the count of non-writable subscribers.
+     *
+     * @return the number of non-writable subscribers
+     */
     int getNonWritableCount() {
         return nonWritableSubscribers.size();
     }
     
+    /**
+     * Returns the total subscriber count.
+     *
+     * @return the total number of subscribers
+     */
     int getTotalSubscribers() {
         return totalSubscribers.get();
     }
     
+    /**
+     * Returns the topic hash.
+     *
+     * @return the topic hash
+     */
     long getTopicHash() {
         return topicHash;
     }

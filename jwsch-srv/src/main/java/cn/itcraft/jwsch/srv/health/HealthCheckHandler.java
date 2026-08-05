@@ -20,6 +20,18 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+/**
+ * Netty HTTP handler for health check endpoints.
+ *
+ * <p>Handles health check requests at three endpoints:
+ * <ul>
+ *   <li>/health/live: Liveness probe - always returns UP</li>
+ *   <li>/health/ready: Readiness probe - checks aggregated health status</li>
+ *   <li>/health: Full health check - returns detailed component status</li>
+ * </ul>
+ *
+ * <p>Responses are in JSON format with appropriate HTTP status codes.
+ */
 class HealthCheckHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(HealthCheckHandler.class);
@@ -27,6 +39,11 @@ class HealthCheckHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     
     private final HealthAggregator healthAggregator;
     
+    /**
+     * Creates a HealthCheckHandler with the specified health aggregator.
+     *
+     * @param healthAggregator the health aggregator to use for status checks
+     */
     HealthCheckHandler(HealthAggregator healthAggregator) {
         this.healthAggregator = healthAggregator;
     }

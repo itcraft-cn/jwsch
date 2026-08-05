@@ -15,22 +15,26 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * 出站缓冲Handler。
+ * Outbound buffer handler.
  *
- * <p>实现L3堆积溢出控制：
+ * <p>Implements L3 accumulation overflow control:
  * <ul>
- *   <li>当Channel不可写时，消息入队缓冲</li>
- *   <li>队列满时根据OverflowStrategy处理</li>
- *   <li>Channel恢复可写时，排空队列</li>
+ *   <li>When channel is not writable, messages are buffered in queue</li>
+ *   <li>When queue is full, handles overflow according to OverflowStrategy</li>
+ *   <li>When channel becomes writable again, drains the queue</li>
  * </ul>
  *
- * <p>溢出策略：
+ * <p>Overflow strategies:
  * <ul>
- *   <li>DROP_OLDEST: 丢弃最旧消息</li>
- *   <li>DROP_NEWEST: 丢弃新消息</li>
- *   <li>DISCONNECT: 断开慢消费者</li>
- *   <li>DROP_OLDEST_THEN_DISCONNECT: 先丢弃旧，超极限后断开</li>
+ *   <li>DROP_OLDEST: Discard oldest message</li>
+ *   <li>DROP_NEWEST: Discard new message</li>
+ *   <li>DISCONNECT: Disconnect slow consumer</li>
+ *   <li>DROP_OLDEST_THEN_DISCONNECT: Discard oldest first, disconnect after threshold</li>
  * </ul>
+ *
+ * <p>This is the third layer (L3) in the three-layer flow control system,
+ * handling backpressure at the individual connection level when downstream
+ * consumers cannot keep up with the message rate.
  */
 public class OutboundBufferHandler extends ChannelDuplexHandler {
     
@@ -45,6 +49,11 @@ public class OutboundBufferHandler extends ChannelDuplexHandler {
     private final LongAdder drainCount;
     private final LongAdder disconnectCount;
     
+    /**
+     * Creates an OutboundBufferHandler with the specified configuration.
+     *
+     * @param config the flow control configuration
+     */
     public OutboundBufferHandler(FlowControlConfig config) {
         this.maxQueueSize = config.getMaxQueueSize();
         this.disconnectThreshold = config.getDisconnectThreshold();
@@ -177,22 +186,47 @@ public class OutboundBufferHandler extends ChannelDuplexHandler {
         LOGGER.debug("Enqueued buffer: queueSize={}", pendingQueue.size());
     }
     
+    /**
+     * Returns the current queue size.
+     *
+     * @return the number of buffers currently in the queue
+     */
     public int getQueueSize() {
         return pendingQueue.size();
     }
     
+    /**
+     * Returns the total count of dropped buffers.
+     *
+     * @return the number of buffers dropped due to overflow
+     */
     public long getDropCount() {
         return dropCount.sum();
     }
     
+    /**
+     * Returns the total count of enqueued buffers.
+     *
+     * @return the number of buffers successfully enqueued
+     */
     public long getEnqueueCount() {
         return enqueueCount.sum();
     }
     
+    /**
+     * Returns the total count of drained buffers.
+     *
+     * @return the number of buffers drained from queue and sent
+     */
     public long getDrainCount() {
         return drainCount.sum();
     }
     
+    /**
+     * Returns the total count of disconnected clients.
+     *
+     * @return the number of clients disconnected due to overflow
+     */
     public long getDisconnectCount() {
         return disconnectCount.sum();
     }

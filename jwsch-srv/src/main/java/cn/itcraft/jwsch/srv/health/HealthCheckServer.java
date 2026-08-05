@@ -15,6 +15,15 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Health check server that exposes HTTP endpoints for health monitoring.
+ *
+ * <p>Starts a lightweight HTTP server on a configurable port to provide
+ * health check endpoints for liveness and readiness probes.
+ *
+ * <p>Supports both standalone mode (with its own event loops) and shared
+ * mode (using externally provided event loops).
+ */
 public class HealthCheckServer {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(HealthCheckServer.class);
@@ -31,12 +40,24 @@ public class HealthCheckServer {
     private Channel serverChannel;
     private volatile boolean started = false;
     
+    /**
+     * Creates a HealthCheckServer with its own event loops.
+     *
+     * @param config the health server configuration
+     */
     public HealthCheckServer(HealthConfig config) {
         this.config = config;
         this.healthAggregator = new HealthAggregator();
         this.ownsEventLoop = true;
     }
     
+    /**
+     * Creates a HealthCheckServer with shared event loops.
+     *
+     * @param config the health server configuration
+     * @param bossGroup the shared boss event loop group
+     * @param workerGroup the shared worker event loop group
+     */
     public HealthCheckServer(HealthConfig config, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
         this.config = config;
         this.healthAggregator = new HealthAggregator();
@@ -45,6 +66,11 @@ public class HealthCheckServer {
         this.ownsEventLoop = false;
     }
     
+    /**
+     * Starts the health check server.
+     *
+     * @throws IllegalStateException if the server fails to start
+     */
     public void start() {
         if (started) {
             LOGGER.warn("HealthCheckServer already started");
@@ -78,6 +104,9 @@ public class HealthCheckServer {
         }
     }
     
+    /**
+     * Shuts down the health check server.
+     */
     public void shutdown() {
         if (!started) {
             return;
@@ -102,10 +131,20 @@ public class HealthCheckServer {
         LOGGER.info("HealthCheckServer shutdown");
     }
     
+    /**
+     * Returns whether the server is started.
+     *
+     * @return true if the server is started, false otherwise
+     */
     public boolean isStarted() {
         return started;
     }
     
+    /**
+     * Returns the port the server is listening on.
+     *
+     * @return the server port, or the configured port if not yet started
+     */
     public int getPort() {
         if (serverChannel != null) {
             return ((InetSocketAddress) serverChannel.localAddress()).getPort();
@@ -113,14 +152,29 @@ public class HealthCheckServer {
         return config.getPort();
     }
     
+    /**
+     * Returns the health aggregator used by this server.
+     *
+     * @return the HealthAggregator instance
+     */
     public HealthAggregator getHealthAggregator() {
         return healthAggregator;
     }
     
+    /**
+     * Adds a health indicator to the aggregator.
+     *
+     * @param indicator the health indicator to add
+     */
     public void addIndicator(HealthIndicator indicator) {
         healthAggregator.addIndicator(indicator);
     }
     
+    /**
+     * Removes a health indicator from the aggregator.
+     *
+     * @param indicator the health indicator to remove
+     */
     public void removeIndicator(HealthIndicator indicator) {
         healthAggregator.removeIndicator(indicator);
     }
