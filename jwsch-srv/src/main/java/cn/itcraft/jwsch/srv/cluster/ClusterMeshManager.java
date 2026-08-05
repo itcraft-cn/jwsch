@@ -61,6 +61,13 @@ public class ClusterMeshManager {
     private final AtomicBoolean started = new AtomicBoolean(false);
     private final ConcurrentHashMap<String, Long> heartbeatTimestamps = new ConcurrentHashMap<>();
     
+    /**
+     * Creates a new cluster mesh manager.
+     *
+     * @param config the cluster configuration
+     * @param connectionRegistry the connection registry for managing node connections
+     * @param nodeRegistry the node registry for tracking cluster membership
+     */
     public ClusterMeshManager(ClusterConfig config,
                               ClusterConnectionRegistry connectionRegistry,
                               InMemoryClusterNodeRegistry nodeRegistry) {
@@ -316,22 +323,47 @@ public class ClusterMeshManager {
         return new ClusterMembership(nodes);
     }
     
+    /**
+     * Returns the cluster client instance.
+     *
+     * @return the cluster client
+     */
     public ClusterClient getClusterClient() {
         return client;
     }
     
+    /**
+     * Returns the cluster server instance.
+     *
+     * @return the cluster server
+     */
     public ClusterServer getClusterServer() {
         return server;
     }
     
+    /**
+     * Returns list of known cluster nodes.
+     *
+     * @return list of known nodes
+     */
     public List<NodeInfo> getKnownNodes() {
         return nodeRegistry.getNodes();
     }
     
+    /**
+     * Returns local node identifier.
+     *
+     * @return local node ID
+     */
     public String getLocalNodeId() {
         return config.getNodeId();
     }
     
+    /**
+     * Returns whether the cluster mesh has been started.
+     *
+     * @return true if started, false otherwise
+     */
     public boolean isStarted() {
         return started.get();
     }
