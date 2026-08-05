@@ -95,10 +95,21 @@ public class JwschServer {
     private TopicBackpressureManager topicBackpressureManager;
     private volatile boolean started;
     
+    /**
+     * Creates a JwschServer instance with default configuration.
+     * <p>
+     * Uses {@link JwschConfig#builder()} to create default configuration.
+     */
     public JwschServer() {
         this(JwschConfig.builder().build());
     }
     
+    /**
+     * Creates a JwschServer instance with the specified configuration.
+     *
+     * @param config the server configuration
+     * @throws NullPointerException if config is null
+     */
     public JwschServer(JwschConfig config) {
         this.config = Objects.requireNonNull(config, "config cannot be null");
         
@@ -120,6 +131,21 @@ public class JwschServer {
         this.started = false;
     }
     
+    /**
+     * Starts the Jwsch server with all configured components.
+     * <p>
+     * This method performs the following operations:
+     * <ol>
+     *   <li>Starts WebSocket server for frontend connections</li>
+     *   <li>Starts TCP server for backend connections</li>
+     *   <li>Starts health check server if enabled</li>
+     *   <li>Starts metrics server if enabled</li>
+     *   <li>Initializes topic-level backpressure if enabled</li>
+     *   <li>Initializes cluster mesh if enabled</li>
+     * </ol>
+     * <p>
+     * If the server is already started or disabled, this method does nothing.
+     */
     public void start() {
         if (started) {
             LOGGER.warn("JwschServer already started");
@@ -224,6 +250,21 @@ public class JwschServer {
             metricsConfig.isEnabled() ? metricsConfig.getPort() : "disabled");
     }
     
+    /**
+     * Shuts down the Jwsch server and all its components.
+     * <p>
+     * This method stops all running servers in reverse order of startup:
+     * <ol>
+     *   <li>WebSocket server</li>
+     *   <li>TCP server</li>
+     *   <li>Health check server</li>
+     *   <li>Metrics server</li>
+     *   <li>Cluster mesh</li>
+     *   <li>Topic statistics manager</li>
+     * </ol>
+     * <p>
+     * If the server is not started, this method does nothing.
+     */
     public void shutdown() {
         if (!started) {
             return;
@@ -256,34 +297,74 @@ public class JwschServer {
         LOGGER.info("JwschServer shutdown");
     }
     
+    /**
+     * Returns whether the Jwsch server is currently started.
+     *
+     * @return true if the server is started, false otherwise
+     */
     public boolean isStarted() {
         return started;
     }
     
+    /**
+     * Returns the service registry used by this server.
+     *
+     * @return the service registry instance
+     */
     public ServiceRegistry getServiceRegistry() {
         return serviceRegistry;
     }
     
+    /**
+     * Returns the load balancer used by this server.
+     *
+     * @return the load balancer instance
+     */
     public LoadBalance getLoadBalance() {
         return loadBalance;
     }
     
+    /**
+     * Returns the packet router used by this server.
+     *
+     * @return the packet router instance
+     */
     public PacketRouter getPacketRouter() {
         return packetRouter;
     }
     
+    /**
+     * Returns the server metrics collector used by this server.
+     *
+     * @return the server metrics instance
+     */
     public ServerMetrics getServerMetrics() {
         return serverMetrics;
     }
     
+    /**
+     * Returns the health check server instance, or null if health checks are disabled.
+     *
+     * @return the health check server instance, or null
+     */
     public HealthCheckServer getHealthCheckServer() {
         return healthCheckServer;
     }
     
+    /**
+     * Returns the metrics server instance, or null if metrics collection is disabled.
+     *
+     * @return the metrics server instance, or null
+     */
     public MetricsServer getMetricsServer() {
         return metricsServer;
     }
     
+    /**
+     * Returns the topic statistics manager used by this server.
+     *
+     * @return the topic statistics manager instance
+     */
     public TopicStatsManager getTopicStatsManager() {
         return topicStatsManager;
     }
