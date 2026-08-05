@@ -34,6 +34,16 @@ public class ClusterForwarder {
     private final ConnectionManager connectionManager;
     private final NodeBloomFilter localBloomFilter;
     
+    /**
+     * Creates a cluster forwarder with dependencies.
+     * 
+     * @param config cluster configuration
+     * @param client cluster client for sending messages to other nodes
+     * @param connectionRegistry registry mapping connections to nodes
+     * @param nodeRegistry registry of known cluster nodes
+     * @param connectionManager local connection manager for forwarding to local connections
+     * @param localBloomFilter Bloom filter for local topic subscription checks
+     */
     public ClusterForwarder(ClusterConfig config,
                             ClusterClient client,
                             ClusterConnectionRegistry connectionRegistry,

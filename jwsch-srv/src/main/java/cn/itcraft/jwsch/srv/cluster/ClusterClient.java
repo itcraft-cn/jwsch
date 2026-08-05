@@ -21,6 +21,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Cluster client for connecting to other cluster nodes.
+ * 
+ * <p>Maintains TCP connections to other nodes in the cluster mesh.
+ * Handles sending and broadcasting messages (both Packet and ClusterMessage).
+ * Uses Netty NIO client with single worker event loop.
+ */
 public class ClusterClient {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterClient.class);
@@ -29,11 +36,24 @@ public class ClusterClient {
     private final EventLoopGroup workerGroup;
     private final Map<String, Channel> connections = new ConcurrentHashMap<>();
     
+    /**
+     * Creates a cluster client with configuration.
+     * 
+     * @param config cluster configuration
+     */
     public ClusterClient(ClusterConfig config) {
         this.config = config;
         this.workerGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("cluster-client"));
     }
     
+    /**
+     * Connects to a cluster node.
+     * 
+     * <p>Establishes a TCP connection to the node's cluster port.
+     * If already connected, does nothing.
+     * 
+     * @param node node information
+     */
     public void connect(NodeInfo node) {
         if (connections.containsKey(node.getNodeId())) {
             return;
@@ -63,6 +83,11 @@ public class ClusterClient {
         }
     }
     
+    /**
+     * Disconnects from a cluster node.
+     * 
+     * @param nodeId identifier of the node to disconnect from
+     */
     public void disconnect(String nodeId) {
         Channel channel = connections.remove(nodeId);
         if (channel != null) {
@@ -71,6 +96,12 @@ public class ClusterClient {
         }
     }
     
+    /**
+     * Sends a Packet to a specific cluster node.
+     * 
+     * @param nodeId identifier of the target node
+     * @param packet packet to send
+     */
     public void send(String nodeId, Packet packet) {
         Channel channel = connections.get(nodeId);
         if (channel != null && channel.isActive()) {
@@ -80,6 +111,12 @@ public class ClusterClient {
         }
     }
     
+    /**
+     * Sends a ClusterMessage to a specific cluster node.
+     * 
+     * @param nodeId identifier of the target node
+     * @param msg cluster message to send
+     */
     public void sendClusterMessage(String nodeId, ClusterMessage msg) {
         Channel channel = connections.get(nodeId);
         if (channel != null && channel.isActive()) {
@@ -89,6 +126,11 @@ public class ClusterClient {
         }
     }
     
+    /**
+     * Broadcasts a Packet to all connected cluster nodes.
+     * 
+     * @param packet packet to broadcast
+     */
     public void broadcast(Packet packet) {
         for (Channel channel : connections.values()) {
             if (channel.isActive()) {
@@ -97,6 +139,11 @@ public class ClusterClient {
         }
     }
     
+    /**
+     * Broadcasts a ClusterMessage to all connected cluster nodes.
+     * 
+     * @param msg cluster message to broadcast
+     */
     public void broadcastClusterMessage(ClusterMessage msg) {
         for (Channel channel : connections.values()) {
             if (channel.isActive()) {
@@ -105,19 +152,41 @@ public class ClusterClient {
         }
     }
     
+    /**
+     * Checks if connected to a specific cluster node.
+     * 
+     * @param nodeId identifier of the node
+     * @return {@code true} if connected and channel is active
+     */
     public boolean isConnected(String nodeId) {
         Channel channel = connections.get(nodeId);
         return channel != null && channel.isActive();
     }
     
+    /**
+     * Gets the channel for a specific cluster node.
+     * 
+     * @param nodeId identifier of the node
+     * @return the Netty Channel, or {@code null} if not connected
+     */
     public Channel getChannel(String nodeId) {
         return connections.get(nodeId);
     }
     
+    /**
+     * Returns the number of established connections.
+     * 
+     * @return connection count
+     */
     public int getConnectionCount() {
         return connections.size();
     }
     
+    /**
+     * Checks if there is at least one active connection to any cluster node.
+     * 
+     * @return {@code true} if any connected channel is active
+     */
     public boolean hasConnectedNodes() {
         for (Channel channel : connections.values()) {
             if (channel.isActive()) {
@@ -127,6 +196,9 @@ public class ClusterClient {
         return false;
     }
     
+    /**
+     * Shuts down the cluster client, closing all connections and releasing resources.
+     */
     public void shutdown() {
         for (Channel channel : connections.values()) {
             channel.close();

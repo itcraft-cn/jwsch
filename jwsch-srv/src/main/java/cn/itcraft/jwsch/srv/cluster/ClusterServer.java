@@ -16,6 +16,13 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Cluster server for inter-node communication.
+ * 
+ * <p>Listens on cluster port for incoming connections from other cluster nodes.
+ * Handles cluster protocol messages (JOIN, MEMBERSHIP, HEARTBEAT, FORWARD, BROADCAST).
+ * Uses Netty NIO server with separate boss/worker event loops.
+ */
 public class ClusterServer {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterServer.class);
@@ -29,6 +36,13 @@ public class ClusterServer {
     private EventLoopGroup workerGroup;
     private Channel serverChannel;
     
+    /**
+     * Creates a cluster server with dependencies.
+     * 
+     * @param config cluster configuration
+     * @param connectionRegistry registry mapping connections to nodes
+     * @param nodeRegistry registry of known cluster nodes
+     */
     public ClusterServer(ClusterConfig config, 
                          ClusterConnectionRegistry connectionRegistry,
                          InMemoryClusterNodeRegistry nodeRegistry) {
@@ -37,10 +51,23 @@ public class ClusterServer {
         this.nodeRegistry = nodeRegistry;
     }
     
+    /**
+     * Sets the mesh manager for callback handling.
+     * 
+     * @param meshManager cluster mesh manager
+     */
     void setMeshManager(ClusterMeshManager meshManager) {
         this.meshManager = meshManager;
     }
     
+    /**
+     * Starts the cluster server, binding to the configured cluster port.
+     * 
+     * <p>Initializes Netty boss/worker event loops, sets up pipeline with
+     * cluster message decoder/encoder and server handler.
+     * 
+     * @throws InterruptedException if thread is interrupted while binding
+     */
     public void start() throws InterruptedException {
         bossGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("cluster-boss"));
         workerGroup = new NioEventLoopGroup(1, new DefaultThreadFactory("cluster-worker"));
@@ -68,6 +95,9 @@ public class ClusterServer {
         LOGGER.info("ClusterServer started on port {}", config.getClusterPort());
     }
     
+    /**
+     * Stops the cluster server, closing the server channel and shutting down event loops.
+     */
     public void stop() {
         if (serverChannel != null) {
             serverChannel.close();
@@ -84,6 +114,11 @@ public class ClusterServer {
         LOGGER.info("ClusterServer stopped");
     }
     
+    /**
+     * Returns the port the cluster server is bound to.
+     * 
+     * @return the actual bound port if server is running, otherwise the configured cluster port
+     */
     public int getPort() {
         if (serverChannel != null) {
             return ((InetSocketAddress) serverChannel.localAddress()).getPort();

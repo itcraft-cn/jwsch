@@ -31,6 +31,11 @@ public class NodeBloomFilter {
     private BloomFilter<Long> bloom;
     private int expectedTopics;
     
+    /**
+     * Creates a Bloom filter with expected number of topics.
+     * 
+     * @param expectedTopics expected number of unique topics for sizing the filter
+     */
     public NodeBloomFilter(int expectedTopics) {
         this.expectedTopics = expectedTopics;
         this.bloom = createBloomFilter(expectedTopics);
@@ -40,6 +45,13 @@ public class NodeBloomFilter {
         return BloomFilter.create(Funnels.longFunnel(), expectedInsertions, FALSE_POSITIVE_RATE);
     }
     
+    /**
+     * Adds a topic hash to the Bloom filter.
+     * 
+     * <p>Acquires write lock to ensure thread safety.
+     * 
+     * @param topicHash hash of the topic to add
+     */
     public void addTopic(long topicHash) {
         lock.writeLock().lock();
         try {
@@ -49,6 +61,17 @@ public class NodeBloomFilter {
         }
     }
     
+    /**
+     * Checks if the Bloom filter might contain the given topic hash.
+     * 
+     * <p>Acquires read lock for thread safety.
+     * <p>Note: Bloom filters have false positives but no false negatives.
+     * A return value of {@code true} means the topic <i>might</i> be present;
+     * {@code false} means the topic is <i>definitely not</i> present.
+     * 
+     * @param topicHash hash of the topic to check
+     * @return {@code true} if the topic might be present, {@code false} if definitely not present
+     */
     public boolean mightHaveTopic(long topicHash) {
         lock.readLock().lock();
         try {
@@ -58,6 +81,14 @@ public class NodeBloomFilter {
         }
     }
     
+    /**
+     * Rebuilds the Bloom filter with a new set of topic hashes.
+     * 
+     * <p>Acquires write lock to ensure thread safety.
+     * The filter size is adjusted to the maximum of expectedTopics and the size of the new set.
+     * 
+     * @param topicHashes new set of topic hashes to populate the filter
+     */
     public void rebuild(Set<Long> topicHashes) {
         lock.writeLock().lock();
         try {
@@ -71,6 +102,12 @@ public class NodeBloomFilter {
         }
     }
     
+    /**
+     * Clears the Bloom filter and resets it to empty state.
+     * 
+     * <p>Acquires write lock to ensure thread safety.
+     * The filter retains the original expected topics size.
+     */
     public void clear() {
         lock.writeLock().lock();
         try {
