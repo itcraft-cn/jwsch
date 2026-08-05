@@ -19,6 +19,14 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BenchPublisherMain {
     
+    /**
+     * 发布者独立进程入口。
+     * 
+     * <p>启动 N 个 TCP 发布者，每个发布者独立统计 TPS。
+     * 支持命令行参数配置，包含优雅停机处理。
+     * 
+     * @param args 命令行参数，支持 --host, --tcpPort, --publishers 等选项
+     */
     public static void main(String[] args) {
         String host = "localhost";
         int tcpPort = 9090;

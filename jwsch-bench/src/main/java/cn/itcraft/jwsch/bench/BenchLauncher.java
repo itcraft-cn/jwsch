@@ -14,6 +14,18 @@ package cn.itcraft.jwsch.bench;
  */
 public final class BenchLauncher {
     
+    /**
+     * Benchmark 多进程统一入口。
+     * 
+     * <p>根据第一个参数分发到不同的角色入口：
+     * <ul>
+     *   <li>{@code server} - 启动服务器</li>
+     *   <li>{@code publisher} - 启动发布者</li>
+     *   <li>{@code subscriber} - 启动订阅者</li>
+     * </ul>
+     * 
+     * @param args 命令行参数，第一个参数为角色，后续为角色特定参数
+     */
     public static void main(String[] args) {
         if (args.length == 0) {
             printHelp();

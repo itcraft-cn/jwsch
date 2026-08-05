@@ -16,6 +16,13 @@ public final class BenchServer {
     private final int wsPort;
     private final int tcpPort;
     
+    /**
+     * 创建 Benchmark 服务端。
+     * 
+     * @param wsPort WebSocket 端口
+     * @param tcpPort TCP 端口
+     * @param workerThreads 工作线程数
+     */
     public BenchServer(int wsPort, int tcpPort, int workerThreads) {
         this.wsPort = wsPort;
         this.tcpPort = tcpPort;
@@ -42,11 +49,21 @@ public final class BenchServer {
         this.server = new JwschServer(config);
     }
     
+    /**
+     * 启动服务器。
+     * 
+     * <p>启动 WebSocket 和 TCP 服务，打印端口信息。
+     */
     public void start() {
         server.start();
         System.out.println("Server started: WebSocket=" + wsPort + ", TCP=" + tcpPort);
     }
     
+    /**
+     * 关闭服务器。
+     * 
+     * <p>优雅关闭 WebSocket 和 TCP 服务。
+     */
     public void shutdown() {
         server.shutdown();
         System.out.println("Server shutdown");

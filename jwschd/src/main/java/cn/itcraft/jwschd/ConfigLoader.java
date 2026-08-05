@@ -1,3 +1,23 @@
+/**
+ * Jwschd 配置加载器。
+ * 
+ * <p>从多个来源加载并合并配置，优先级顺序：
+ * <ol>
+ *   <li>命令行参数 (最高优先级)</li>
+ *   <li>环境变量</li>
+ *   <li>配置文件 (YAML)</li>
+ *   <li>默认值 (最低优先级)</li>
+ * </ol>
+ * 
+ * <p>配置文件支持 application.yml 和自定义路径：
+ * <pre>
+ *   java -jar jwschd.jar --config /path/to/config.yml
+ *   java -jar jwschd.jar -c /path/to/config.yml
+ * </pre>
+ * 
+ * <p>环境变量前缀：JWSCH_ (例如：JWSCH_WEBSOCKET_PORT=8080)
+ * <p>命令行参数：--jwsch.key=value (例如：--jwsch.websocket.port=8080)
+ */
 package cn.itcraft.jwschd;
 
 import cn.itcraft.jwsch.srv.cluster.ClusterConfig;
@@ -16,11 +36,32 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 配置加载器实现类。
+ * 
+ * <p>负责从多个来源加载、解析和合并 Jwsch 服务器配置。
+ * 采用不可变设计，线程安全。
+ */
 public final class ConfigLoader {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(ConfigLoader.class);
     private static final String DEFAULT_CONFIG = "application.yml";
     
+    /**
+     * 从命令行参数加载配置。
+     * 
+     * <p>加载流程：
+     * <ol>
+     *   <li>查找配置文件路径（命令行参数、默认位置）</li>
+     *   <li>加载 YAML 配置文件</li>
+     *   <li>用环境变量覆盖配置</li>
+     *   <li>用命令行参数覆盖配置</li>
+     *   <li>构建最终的 {@link JwschConfig} 对象</li>
+     * </ol>
+     * 
+     * @param args 命令行参数，支持 --config/-c 指定配置文件路径
+     * @return 完整的 Jwsch 配置对象
+     */
     public static JwschConfig load(String[] args) {
         String configPath = findConfigPath(args);
         

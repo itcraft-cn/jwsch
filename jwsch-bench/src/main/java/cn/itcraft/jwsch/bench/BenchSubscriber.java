@@ -23,6 +23,14 @@ public final class BenchSubscriber {
     private final TpsTracker tpsTracker;
     private final int id;
     
+    /**
+     * 创建 Benchmark 订阅者。
+     * 
+     * @param id 订阅者 ID
+     * @param wsUrl WebSocket 服务器 URL
+     * @param topic 订阅主题
+     * @param tpsTracker TPS 统计器
+     */
     public BenchSubscriber(int id, String wsUrl, String topic, TpsTracker tpsTracker) {
         this.id = id;
         this.topic = topic;
@@ -30,6 +38,13 @@ public final class BenchSubscriber {
         this.client = new WebSocketClient(wsUrl);
     }
     
+    /**
+     * 启动订阅者。
+     * 
+     * <p>连接 WebSocket 服务器，注册消息处理器，发送订阅请求。
+     * 
+     * @throws Exception 连接失败或订阅失败时抛出异常
+     */
     public void start() throws Exception {
         client.connect();
         
@@ -83,6 +98,11 @@ public final class BenchSubscriber {
         return cmd == CMD_PUSH || cmd == CMD_BROADCAST;
     }
     
+    /**
+     * 停止订阅者。
+     * 
+     * <p>关闭 WebSocket 连接。
+     */
     public void stop() {
         client.close();
     }

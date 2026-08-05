@@ -20,6 +20,14 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BenchRunner {
     
+    /**
+     * Benchmark 主入口。
+     * 
+     * <p>启动完整测试流程：服务器 + 订阅者 + 发布者。
+     * 定时输出 TPS 统计，支持有限时长或无限运行。
+     * 
+     * @param args 命令行参数，支持 --publishers, --subscribers, --duration 等选项
+     */
     public static void main(String[] args) {
         BenchConfig config = parseArgs(args);
         

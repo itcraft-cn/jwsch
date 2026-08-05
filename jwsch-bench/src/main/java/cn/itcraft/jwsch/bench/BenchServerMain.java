@@ -18,6 +18,14 @@ import java.util.concurrent.TimeUnit;
  */
 public final class BenchServerMain {
     
+    /**
+     * 服务端独立进程入口。
+     * 
+     * <p>启动 JwschServer，端口绑定完成后打印 SERVER_READY 标记，
+     * 供 Shell 脚本等待。
+     * 
+     * @param args 命令行参数，支持 --wsPort, --tcpPort, --workers 等选项
+     */
     public static void main(String[] args) {
         int wsPort = 8080;
         int tcpPort = 9090;

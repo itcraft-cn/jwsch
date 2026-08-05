@@ -45,6 +45,17 @@ public final class BenchPublisher {
     private final byte[] payloadTemplate;
     private final PooledByteBufAllocator allocator;
     
+    /**
+     * 创建 Benchmark 发布者。
+     * 
+     * @param host 服务器主机地址
+     * @param port 服务器 TCP 端口
+     * @param topic 发布主题
+     * @param sendIntervalMicros 发送间隔（微秒）
+     * @param payloadSize 负载大小（字节）
+     * @param tpsTracker TPS 统计器
+     * @throws Exception 连接失败时抛出异常
+     */
     public BenchPublisher(String host, int port, String topic, 
                           long sendIntervalMicros, int payloadSize, TpsTracker tpsTracker) throws Exception {
         this.topic = topic;
@@ -80,6 +91,12 @@ public final class BenchPublisher {
         this.channel = client.connect(host, port);
     }
     
+    /**
+     * 启动发布者。
+     * 
+     * <p>启动定时任务，按指定间隔发送消息。
+     * 打印启动信息到控制台。
+     */
     public void start() {
         scheduler.scheduleAtFixedRate(
             this::sendMessage,
@@ -124,6 +141,12 @@ public final class BenchPublisher {
         return buf;
     }
     
+    /**
+     * 停止发布者。
+     * 
+     * <p>停止定时任务，关闭 TCP 连接，等待资源释放。
+     * 超时 3 秒强制关闭。
+     */
     public void stop() {
         running.set(false);
         
@@ -139,6 +162,11 @@ public final class BenchPublisher {
         client.shutdown();
     }
     
+    /**
+     * 检查发布者是否在运行。
+     * 
+     * @return true 如果发布者正在运行且连接活跃
+     */
     public boolean isRunning() {
         return running.get() && channel.isActive();
     }
