@@ -13,6 +13,10 @@ import cn.itcraft.jwsch.common.protocol.ProtocolConsts;
 /**
  * Cluster forward message for forwarding REQUEST to target node.
  * 
+ * <p>This message is used when a node receives a client request destined for a connection
+ * that is connected to another node. The receiving node forwards the request to the node
+ * hosting the target connection.
+ * 
  * <p>Format:
  * <pre>
  * | Cmd(1B) | TargetId(8B) | PacketLen(4B) | Packet(NB) |
@@ -23,16 +27,33 @@ public final class ClusterForward extends ClusterMessage {
     private long targetId;
     private Packet packet;
     
+    /**
+     * Constructs an empty forward message for decoding.
+     */
     public ClusterForward() {
         super(Command.CLUSTER_FORWARD);
     }
     
+    /**
+     * Constructs a forward message with target and packet.
+     *
+     * @param targetId the target connection ID
+     * @param packet the packet to forward
+     */
     public ClusterForward(long targetId, Packet packet) {
         super(Command.CLUSTER_FORWARD);
         this.targetId = targetId;
         this.packet = packet;
     }
     
+    /**
+     * Encodes this forward message into the given ByteBuf.
+     *
+     * <p>Format: Cmd(1B) | TargetId(8B) | PacketLen(4B) | Packet(NB)
+     *
+     * @param out the ByteBuf to write to
+     * @throws IllegalArgumentException if the packet cannot be encoded
+     */
     @Override
     public void encode(ByteBuf out) {
         out.writeByte(cmd);
@@ -51,6 +72,14 @@ public final class ClusterForward extends ClusterMessage {
         }
     }
     
+    /**
+     * Decodes this forward message from the given ByteBuf.
+     *
+     * <p>Format: Cmd(1B) | TargetId(8B) | PacketLen(4B) | Packet(NB)
+     *
+     * @param in the ByteBuf to read from
+     * @throws IllegalArgumentException if the buffer does not contain a valid message
+     */
     @Override
     public void decode(ByteBuf in) {
         byte cmdByte = in.readByte();
@@ -107,6 +136,13 @@ public final class ClusterForward extends ClusterMessage {
         return new Packet(header, bodyBuf);
     }
     
+    /**
+     * Estimates the encoded size of this forward message.
+     *
+     * <p>Size includes: command(1B) + targetId(8B) + packetLen(4B) + packet header + body.
+     *
+     * @return estimated size in bytes
+     */
     @Override
     public int estimateSize() {
         if (packet != null) {
@@ -117,14 +153,29 @@ public final class ClusterForward extends ClusterMessage {
         return 1 + 8 + 4;
     }
     
+    /**
+     * Returns the target connection ID.
+     *
+     * @return target connection ID
+     */
     public long getTargetId() {
         return targetId;
     }
     
+    /**
+     * Returns the packet to forward.
+     *
+     * @return packet to forward, may be null
+     */
     public Packet getPacket() {
         return packet;
     }
     
+    /**
+     * Returns a string representation of this forward message.
+     *
+     * @return string representation
+     */
     @Override
     public String toString() {
         return "ClusterForward{targetId=" + targetId + '}';
