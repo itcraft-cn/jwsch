@@ -57,6 +57,15 @@ public class ClusterSyncService {
     private volatile ClusterSync pendingSync;
     private final Object syncLock = new Object();
     
+    /**
+     * Creates a new cluster sync service.
+     *
+     * @param config cluster configuration
+     * @param client cluster client for sending messages
+     * @param connectionRegistry registry for local and remote connections
+     * @param topicSubscription topic subscription manager
+     * @param localBloomFilter bloom filter for local topics
+     */
     public ClusterSyncService(ClusterConfig config,
                               ClusterClient client,
                               ClusterConnectionRegistry connectionRegistry,
@@ -196,6 +205,8 @@ public class ClusterSyncService {
     
     /**
      * Send incremental sync to all nodes.
+     *
+     * @param op the sync operation to broadcast
      */
     private void sendIncrementalSync(ClusterSync.SyncOp op) {
         if (!client.hasConnectedNodes()) {
@@ -213,6 +224,8 @@ public class ClusterSyncService {
     
     /**
      * Build full sync operations from current state.
+     *
+     * @return list of sync operations representing current local connections and subscriptions
      */
     private List<ClusterSync.SyncOp> buildFullSyncOps() {
         List<ClusterSync.SyncOp> operations = new ArrayList<>();
@@ -233,6 +246,11 @@ public class ClusterSyncService {
         return operations;
     }
     
+    /**
+     * Returns whether the sync service has been started.
+     *
+     * @return true if the service is started, false otherwise
+     */
     public boolean isStarted() {
         return started.get();
     }

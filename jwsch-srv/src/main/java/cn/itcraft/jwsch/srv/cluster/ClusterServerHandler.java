@@ -38,6 +38,13 @@ class ClusterServerHandler extends SimpleChannelInboundHandler<Object> {
     private final ClusterMeshManager meshManager;
     private final ConcurrentHashMap<Channel, String> channelToNodeId = new ConcurrentHashMap<>();
     
+    /**
+     * Creates a new cluster server handler.
+     *
+     * @param connectionRegistry registry for remote connections
+     * @param nodeRegistry registry for cluster nodes
+     * @param meshManager cluster mesh manager
+     */
     ClusterServerHandler(ClusterConnectionRegistry connectionRegistry,
                          InMemoryClusterNodeRegistry nodeRegistry,
                          ClusterMeshManager meshManager) {
@@ -46,6 +53,12 @@ class ClusterServerHandler extends SimpleChannelInboundHandler<Object> {
         this.meshManager = meshManager;
     }
     
+    /**
+     * Handles incoming cluster messages.
+     *
+     * @param ctx channel handler context
+     * @param msg the incoming message
+     */
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
         if (msg instanceof ClusterJoin) {
@@ -146,11 +159,21 @@ class ClusterServerHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
     
+    /**
+     * Called when a cluster node connection becomes active.
+     *
+     * @param ctx channel handler context
+     */
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         LOGGER.info("Cluster node connected: {}", ctx.channel().remoteAddress());
     }
     
+    /**
+     * Called when a cluster node connection becomes inactive.
+     *
+     * @param ctx channel handler context
+     */
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
         String nodeId = channelToNodeId.remove(ctx.channel());
@@ -159,6 +182,12 @@ class ClusterServerHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
     
+    /**
+     * Called when an exception occurs in the channel pipeline.
+     *
+     * @param ctx channel handler context
+     * @param cause the exception
+     */
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         LOGGER.error("Cluster connection error from {}", ctx.channel().remoteAddress(), cause);
