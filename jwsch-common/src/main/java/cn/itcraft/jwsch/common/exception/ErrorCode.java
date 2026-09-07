@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.exception;
+
 /**
  * Error codes for jwsch protocol and operations.
  * 

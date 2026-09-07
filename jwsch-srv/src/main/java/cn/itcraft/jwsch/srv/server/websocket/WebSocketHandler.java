@@ -227,7 +227,11 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
                 .build();
             
             Packet packet = new Packet(header, bodyBuf);
-            handlePacket(ctx, packet);
+            try {
+                handlePacket(ctx, packet);
+            } finally {
+                packet.release();
+            }
         } finally {
             long durationNs = System.nanoTime() - startTime;
             long durationMs = durationNs / 1_000_000;

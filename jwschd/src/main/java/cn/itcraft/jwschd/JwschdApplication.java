@@ -1,3 +1,5 @@
+package cn.itcraft.jwschd;
+
 /**
  * Jwschd 应用主入口。
  * 

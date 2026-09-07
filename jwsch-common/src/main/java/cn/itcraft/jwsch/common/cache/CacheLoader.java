@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.cache;
+
 /**
  * Functional interface for loading cache entries.
  *

@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.sample.pusher;
+
 /**
  * 示例消息推送器应用入口。
  * 

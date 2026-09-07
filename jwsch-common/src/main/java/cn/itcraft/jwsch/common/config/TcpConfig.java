@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.config;
+
 /**
  * TCP socket configuration options.
  * 

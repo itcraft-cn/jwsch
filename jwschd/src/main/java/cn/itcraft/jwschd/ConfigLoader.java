@@ -1,3 +1,5 @@
+package cn.itcraft.jwschd;
+
 /**
  * Jwschd 配置加载器。
  * 

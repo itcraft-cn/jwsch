@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.cache;
+
 /**
  * Exception thrown by cache operations.
  *

@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.exception;
+
 /**
  * Base exception class for jwsch framework.
  * 

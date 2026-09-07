@@ -311,6 +311,9 @@ public final class TcpClient {
 
     /**
      * Schedule a reconnect attempt after the configured delay.
+     *
+     * <p>Uses async connection to avoid blocking the EventLoop thread.
+     * On connection failure, schedules another reconnect attempt.
      */
     private void scheduleReconnect() {
         if (!reconnectEnabled || workerGroup == null || workerGroup.isShuttingDown()) {
@@ -326,15 +329,58 @@ public final class TcpClient {
                 if (!reconnectEnabled) {
                     return;
                 }
+                doConnectClusterAsync();
+            }
+        }, delaySeconds, TimeUnit.SECONDS);
+    }
 
-                try {
-                    doConnectCluster();
-                } catch (Exception e) {
-                    LOGGER.warn("Reconnect failed, will retry: {}", e.getMessage());
+    /**
+     * Asynchronous cluster connection for reconnect attempts.
+     *
+     * <p>Uses listener-based async I/O to avoid blocking the EventLoop thread.
+     * On failure, schedules another reconnect via {@link #scheduleReconnect()}.
+     */
+    private void doConnectClusterAsync() {
+        InetSocketAddress selected = nodeSelector.select(addresses);
+        if (selected == null) {
+            LOGGER.error("NodeSelector returned null, no available address for reconnect");
+            return;
+        }
+
+        ChannelFuture future = bootstrap.connect(selected);
+        future.addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture connectFuture) {
+                if (!reconnectEnabled) {
+                    return;
+                }
+
+                if (connectFuture.isSuccess()) {
+                    Channel ch = connectFuture.channel();
+                    TcpClient.this.activeChannel = ch;
+                    nodeSelector.onConnectSuccess(selected);
+
+                    ch.closeFuture().addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture closeFuture) {
+                            if (reconnectEnabled) {
+                                nodeSelector.onConnectFailed(selected);
+                                scheduleReconnect();
+                            }
+                        }
+                    });
+
+                    String protocol = sslContext != null ? "TLS" : "TCP";
+                    LOGGER.info("Cluster reconnected to {}:{} ({})",
+                        selected.getHostString(), selected.getPort(), protocol);
+                } else {
+                    nodeSelector.onConnectFailed(selected);
+                    LOGGER.warn("Reconnect failed to {}:{}, will retry",
+                        selected.getHostString(), selected.getPort());
                     scheduleReconnect();
                 }
             }
-        }, delaySeconds, TimeUnit.SECONDS);
+        });
     }
 
     /**

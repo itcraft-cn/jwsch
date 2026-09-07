@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.ssl;
+
 /**
  * SSL context factory for Netty.
  *

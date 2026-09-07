@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.exception;
+
 /**
  * Exception thrown when connection-related errors occur.
  * 

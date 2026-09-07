@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.id;
+
 /**
  * ID generation utility using MurmurHash3 algorithm.
  *

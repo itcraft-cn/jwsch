@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.cli.connection;
+
 /**
  * Connection information container.
  *

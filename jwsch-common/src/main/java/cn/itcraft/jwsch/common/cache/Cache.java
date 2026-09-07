@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.cache;
+
 /**
  * Cache interface for key-value storage.
  *

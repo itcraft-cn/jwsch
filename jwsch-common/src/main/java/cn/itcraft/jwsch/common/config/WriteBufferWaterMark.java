@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.config;
+
 /**
  * Write buffer watermarks for Netty channel configuration.
  * 

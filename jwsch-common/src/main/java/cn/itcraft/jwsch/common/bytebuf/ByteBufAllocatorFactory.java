@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.bytebuf;
+
 /**
  * Factory for creating Netty ByteBufAllocator instances.
  *

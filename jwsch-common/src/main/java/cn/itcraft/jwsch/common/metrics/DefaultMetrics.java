@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.metrics;
+
 /**
  * Default thread-safe implementation of {@link Metrics}.
  * 

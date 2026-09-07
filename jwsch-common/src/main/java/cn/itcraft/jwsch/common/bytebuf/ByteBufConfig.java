@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.bytebuf;
+
 /**
  * ByteBuf configuration for Netty memory management.
  *

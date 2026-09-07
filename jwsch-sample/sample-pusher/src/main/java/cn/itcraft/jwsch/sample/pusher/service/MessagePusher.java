@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.sample.pusher.service;
+
 /**
  * 消息推送器服务类。
  * 

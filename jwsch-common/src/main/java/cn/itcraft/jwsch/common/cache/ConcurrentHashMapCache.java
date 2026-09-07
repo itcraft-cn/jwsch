@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.cache;
+
 /**
  * ConcurrentHashMap-based cache implementation.
  *

@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.metrics;
+
 /**
  * Gauge metric interface.
  * 

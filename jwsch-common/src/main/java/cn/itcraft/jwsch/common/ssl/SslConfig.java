@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.common.ssl;
+
 /**
  * SSL/TLS configuration.
  * 

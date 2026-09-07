@@ -1,3 +1,5 @@
+package cn.itcraft.jwsch.sample.server;
+
 /**
  * 示例服务器应用入口。
  * 
