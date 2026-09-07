@@ -1,5 +1,7 @@
 package cn.itcraft.jwsch.cli.connection;
 
+import java.util.Objects;
+
 /**
  * Connection information container.
  *

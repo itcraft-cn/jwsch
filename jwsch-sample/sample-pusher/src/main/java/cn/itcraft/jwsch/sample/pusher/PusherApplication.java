@@ -16,7 +16,6 @@ package cn.itcraft.jwsch.sample.pusher;
  * @author itcraft
  * @since 1.0
  */
-package cn.itcraft.jwsch.sample.pusher;
 
 import cn.itcraft.jwsch.cli.client.TcpClient;
 import cn.itcraft.jwsch.cli.config.ClientConfig;

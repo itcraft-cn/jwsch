@@ -20,7 +20,6 @@ package cn.itcraft.jwschd;
  * <p>环境变量前缀：JWSCH_ (例如：JWSCH_WEBSOCKET_PORT=8080)
  * <p>命令行参数：--jwsch.key=value (例如：--jwsch.websocket.port=8080)
  */
-package cn.itcraft.jwschd;
 
 import cn.itcraft.jwsch.srv.cluster.ClusterConfig;
 import cn.itcraft.jwsch.srv.config.JwschConfig;

@@ -23,7 +23,6 @@ package cn.itcraft.jwschd;
  *   java -jar jwschd.jar -c /path/to/config.yml --jwsch.websocket.port=8080
  * </pre>
  */
-package cn.itcraft.jwschd;
 
 import cn.itcraft.jwsch.srv.JwschServer;
 import cn.itcraft.jwsch.srv.config.JwschConfig;

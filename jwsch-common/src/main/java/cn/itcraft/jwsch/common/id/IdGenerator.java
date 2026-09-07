@@ -1,5 +1,10 @@
 package cn.itcraft.jwsch.common.id;
 
+import com.google.common.hash.Hashing;
+
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * ID generation utility using MurmurHash3 algorithm.
  *
@@ -18,19 +23,19 @@ package cn.itcraft.jwsch.common.id;
  * </ul>
  */
 public final class IdGenerator {
-    
+
     private static final int DEFAULT_SEED = 0x1234ABCD;
     private static final AtomicLong COUNTER = new AtomicLong(System.currentTimeMillis());
-    
+
     private final int seed;
-    
+
     /**
      * Creates an IdGenerator with default seed.
      */
     public IdGenerator() {
         this(DEFAULT_SEED);
     }
-    
+
     /**
      * Creates an IdGenerator with custom seed.
      *
@@ -39,33 +44,33 @@ public final class IdGenerator {
     public IdGenerator(int seed) {
         this.seed = seed;
     }
-    
+
     /**
      * Generates a simple sequential ID.
-     * 
+     *
      * <p>Uses atomic counter starting from current timestamp.
-     * 
+     *
      * @return unique 64-bit ID
      */
     public static long nextId() {
         return COUNTER.incrementAndGet();
     }
-    
+
     /**
      * Generates a hashed ID with prefix.
-     * 
+     *
      * <p>Combines prefix with atomic counter and applies MurmurHash3.
-     * 
+     *
      * @param prefix string prefix (e.g., "conn", "msg")
      * @return hashed 64-bit ID
      */
     public static long nextId(String prefix) {
         String input = prefix + "-" + COUNTER.incrementAndGet();
         return Hashing.murmur3_128(DEFAULT_SEED)
-            .hashString(input, StandardCharsets.UTF_8)
-            .asLong();
+                      .hashString(input, StandardCharsets.UTF_8)
+                      .asLong();
     }
-    
+
     /**
      * Generates a hashed ID from input string.
      *
@@ -74,14 +79,14 @@ public final class IdGenerator {
      */
     public long generateId(String input) {
         return Hashing.murmur3_128(seed)
-            .hashString(input, StandardCharsets.UTF_8)
-            .asLong();
+                      .hashString(input, StandardCharsets.UTF_8)
+                      .asLong();
     }
-    
+
     /**
      * Generates a frontend node ID from IP and port.
      *
-     * @param ip frontend IP address
+     * @param ip   frontend IP address
      * @param port frontend port
      * @return node ID
      */
@@ -89,11 +94,11 @@ public final class IdGenerator {
         String input = formatAddress(ip, port);
         return generateId(input);
     }
-    
+
     /**
      * Generates a backend node ID from IP and port.
      *
-     * @param ip backend IP address
+     * @param ip   backend IP address
      * @param port backend port
      * @return node ID
      */
@@ -101,11 +106,11 @@ public final class IdGenerator {
         String input = formatAddress(ip, port);
         return generateId(input);
     }
-    
+
     /**
      * Generates a node ID with prefix and hostname.
      *
-     * @param prefix node type prefix (e.g., "worker", "gateway")
+     * @param prefix   node type prefix (e.g., "worker", "gateway")
      * @param hostname hostname
      * @return node ID
      */
@@ -113,7 +118,7 @@ public final class IdGenerator {
         String input = prefix + "-" + hostname;
         return generateId(input);
     }
-    
+
     /**
      * Formats IP address and port for hashing.
      * Handles IPv6 addresses with brackets.

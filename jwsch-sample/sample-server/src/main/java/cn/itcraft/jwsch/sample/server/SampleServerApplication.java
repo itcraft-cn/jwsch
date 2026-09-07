@@ -15,7 +15,6 @@ package cn.itcraft.jwsch.sample.server;
  * @author itcraft
  * @since 1.0
  */
-package cn.itcraft.jwsch.sample.server;
 
 import cn.itcraft.jwsch.srv.JwschServer;
 import cn.itcraft.jwsch.srv.config.JwschConfig;

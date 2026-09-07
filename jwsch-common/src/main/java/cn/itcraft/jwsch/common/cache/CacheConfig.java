@@ -1,5 +1,7 @@
 package cn.itcraft.jwsch.common.cache;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Cache configuration.
  *
@@ -24,7 +26,7 @@ package cn.itcraft.jwsch.common.cache;
  * </ul>
  */
 public final class CacheConfig {
-    
+
     private final long maximumSize;
     private final int initialCapacity;
     private final int concurrencyLevel;
@@ -32,7 +34,7 @@ public final class CacheConfig {
     private final long expireAfterAccessMs;
     private final long refreshAfterWriteMs;
     private final boolean recordStats;
-    
+
     private CacheConfig(Builder builder) {
         this.maximumSize = builder.maximumSize;
         this.initialCapacity = builder.initialCapacity;
@@ -42,56 +44,56 @@ public final class CacheConfig {
         this.refreshAfterWriteMs = builder.refreshAfterWriteMs;
         this.recordStats = builder.recordStats;
     }
-    
+
     /**
      * Returns maximum cache size (-1 for unlimited).
      */
     public long getMaximumSize() {
         return maximumSize;
     }
-    
+
     /**
      * Returns initial hash table capacity.
      */
     public int getInitialCapacity() {
         return initialCapacity;
     }
-    
+
     /**
      * Returns concurrency level for concurrent maps.
      */
     public int getConcurrencyLevel() {
         return concurrencyLevel;
     }
-    
+
     /**
      * Returns expiration timeout after write (ms, -1 for disabled).
      */
     public long getExpireAfterWriteMs() {
         return expireAfterWriteMs;
     }
-    
+
     /**
      * Returns expiration timeout after access (ms, -1 for disabled).
      */
     public long getExpireAfterAccessMs() {
         return expireAfterAccessMs;
     }
-    
+
     /**
      * Returns refresh interval after write (ms, -1 for disabled).
      */
     public long getRefreshAfterWriteMs() {
         return refreshAfterWriteMs;
     }
-    
+
     /**
      * Returns whether statistics are recorded.
      */
     public boolean isRecordStats() {
         return recordStats;
     }
-    
+
     /**
      * Builder for CacheConfig.
      */
@@ -103,7 +105,7 @@ public final class CacheConfig {
         private long expireAfterAccessMs = -1;
         private long refreshAfterWriteMs = -1;
         private boolean recordStats = false;
-        
+
         /**
          * Sets maximum cache size.
          *
@@ -113,7 +115,7 @@ public final class CacheConfig {
             this.maximumSize = maximumSize;
             return this;
         }
-        
+
         /**
          * Sets initial hash table capacity.
          *
@@ -123,7 +125,7 @@ public final class CacheConfig {
             this.initialCapacity = initialCapacity;
             return this;
         }
-        
+
         /**
          * Sets concurrency level for concurrent maps.
          *
@@ -133,40 +135,40 @@ public final class CacheConfig {
             this.concurrencyLevel = concurrencyLevel;
             return this;
         }
-        
+
         /**
          * Sets expiration timeout after write.
          *
          * @param duration time duration
-         * @param unit time unit
+         * @param unit     time unit
          */
         public Builder expireAfterWrite(long duration, TimeUnit unit) {
             this.expireAfterWriteMs = unit.toMillis(duration);
             return this;
         }
-        
+
         /**
          * Sets expiration timeout after access.
          *
          * @param duration time duration
-         * @param unit time unit
+         * @param unit     time unit
          */
         public Builder expireAfterAccess(long duration, TimeUnit unit) {
             this.expireAfterAccessMs = unit.toMillis(duration);
             return this;
         }
-        
+
         /**
          * Sets refresh interval after write.
          *
          * @param duration time duration
-         * @param unit time unit
+         * @param unit     time unit
          */
         public Builder refreshAfterWrite(long duration, TimeUnit unit) {
             this.refreshAfterWriteMs = unit.toMillis(duration);
             return this;
         }
-        
+
         /**
          * Sets whether to record statistics.
          *
@@ -176,7 +178,7 @@ public final class CacheConfig {
             this.recordStats = recordStats;
             return this;
         }
-        
+
         /**
          * Builds the CacheConfig.
          */

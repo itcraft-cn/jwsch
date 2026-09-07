@@ -16,7 +16,6 @@ package cn.itcraft.jwsch.sample.pusher.service;
  * @author itcraft
  * @since 1.0
  */
-package cn.itcraft.jwsch.sample.pusher.service;
 
 import cn.itcraft.jwsch.common.id.IdGenerator;
 import cn.itcraft.jwsch.common.protocol.Command;

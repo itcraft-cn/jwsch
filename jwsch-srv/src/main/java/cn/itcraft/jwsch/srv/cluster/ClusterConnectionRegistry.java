@@ -25,169 +25,136 @@ public class ClusterConnectionRegistry {
     private final Map<Long, RemoteConnection> remoteConnections = new ConcurrentHashMap<>();
     private final Map<String, Set<Long>> nodeToConnections = new ConcurrentHashMap<>();
     
-    /**
-     * Creates a new connection registry for the local node.
-     * 
-     * @param localNodeId the ID of the local node
-     */
+    public ClusterConnectionRegistry(String localNodeId) {
+        this.localNodeId = localNodeId;
+    }
     
-    /**
-     * Adds a local connection to the registry.
-     * 
-     * @param connectionId the connection identifier
-     * @param meta metadata about the connection
-     */
+    public void addLocalConnection(long connectionId, ConnectionMeta meta) {
+        localConnections.put(connectionId, meta);
+    }
     
-    /**
-     * Removes a local connection from the registry.
-     * 
-     * <p>Also cleans up any remote connection entry and node index entries.
-     * 
-     * @param connectionId the connection identifier
-     */
+    public void removeLocalConnection(long connectionId) {
+        localConnections.remove(connectionId);
+        
+        String nodeId = findNodeForConnection(connectionId);
+        if (nodeId != null && !localNodeId.equals(nodeId)) {
+            removeFromNodeIndex(nodeId, connectionId);
+        }
+        remoteConnections.remove(connectionId);
+    }
     
-    /**
-     * Adds a remote connection to the registry.
-     * 
-     * <p>Also updates the node-to-connections index for efficient lookups.
-     * 
-     * @param connectionId the connection identifier
-     * @param connection the remote connection information
-     */
+    public void addRemoteConnection(long connectionId, RemoteConnection connection) {
+        remoteConnections.put(connectionId, connection);
+        
+        String nodeId = connection.getNodeId();
+        nodeToConnections.computeIfAbsent(nodeId, k -> ConcurrentHashMap.newKeySet())
+            .add(connectionId);
+    }
     
-    /**
-     * Removes a remote connection from the registry.
-     * 
-     * <p>Also cleans up the node index entry.
-     * 
-     * @param connectionId the connection identifier
-     */
+    public void removeRemoteConnection(long connectionId) {
+        RemoteConnection removed = remoteConnections.remove(connectionId);
+        if (removed != null) {
+            removeFromNodeIndex(removed.getNodeId(), connectionId);
+        }
+    }
     
-    /**
-     * Removes all connections for a specific node.
-     * 
-     * <p>Used when a node leaves the cluster or times out.
-     * 
-     * @param nodeId the node identifier
-     */
+    public void removeNodeConnections(String nodeId) {
+        Set<Long> connectionIds = nodeToConnections.remove(nodeId);
+        if (connectionIds != null) {
+            for (Long connectionId : connectionIds) {
+                remoteConnections.remove(connectionId);
+            }
+        }
+    }
     
-    /**
-     * Checks if a connection is local to this node.
-     * 
-     * @param connectionId the connection identifier
-     * @return true if the connection is local, false otherwise
-     */
+    public boolean isLocal(long connectionId) {
+        return localConnections.containsKey(connectionId);
+    }
     
-    /**
-     * Finds the node that owns a connection.
-     * 
-     * @param connectionId the connection identifier
-     * @return the node identifier, or null if connection not found
-     */
+    public String findNodeForConnection(long connectionId) {
+        if (isLocal(connectionId)) {
+            return localNodeId;
+        }
+        
+        RemoteConnection remote = remoteConnections.get(connectionId);
+        return remote != null ? remote.getNodeId() : null;
+    }
     
-    /**
-     * Gets the network address of the node that owns a connection.
-     * 
-     * <p>Returns null for local connections.
-     * 
-     * @param connectionId the connection identifier
-     * @return the node address, or null for local connections or if not found
-     */
+    public String getNodeAddress(long connectionId) {
+        if (isLocal(connectionId)) {
+            return null;
+        }
+        
+        RemoteConnection remote = remoteConnections.get(connectionId);
+        return remote != null ? remote.getNodeAddress() : null;
+    }
     
-    /**
-     * Gets the node identifier for a connection.
-     * 
-     * @param connectionId the connection identifier
-     * @return the node identifier, or null if connection not found
-     */
+    public String getNodeId(long connectionId) {
+        return findNodeForConnection(connectionId);
+    }
     
-    /**
-     * Gets metadata for a local connection.
-     * 
-     * @param connectionId the connection identifier
-     * @return the connection metadata, or null if not found
-     */
+    public ConnectionMeta getLocalConnection(long connectionId) {
+        return localConnections.get(connectionId);
+    }
     
-    /**
-     * Gets information for a remote connection.
-     * 
-     * @param connectionId the connection identifier
-     * @return the remote connection, or null if not found
-     */
+    public RemoteConnection getRemoteConnection(long connectionId) {
+        return remoteConnections.get(connectionId);
+    }
     
-    /**
-     * Gets all local connection identifiers.
-     * 
-     * @return a set of local connection identifiers
-     */
+    public Set<Long> getLocalConnectionIds() {
+        return new HashSet<>(localConnections.keySet());
+    }
     
-    /**
-     * Gets all remote connection identifiers.
-     * 
-     * @return a set of remote connection identifiers
-     */
+    public Set<Long> getRemoteConnectionIds() {
+        return new HashSet<>(remoteConnections.keySet());
+    }
     
-    /**
-     * Gets all connection identifiers for a specific node.
-     * 
-     * @param nodeId the node identifier
-     * @return a set of connection identifiers for the node, empty if none
-     */
+    public Set<Long> getConnectionIdsForNode(String nodeId) {
+        Set<Long> connectionIds = nodeToConnections.get(nodeId);
+        return connectionIds != null ? Collections.unmodifiableSet(connectionIds) : Collections.emptySet();
+    }
     
-    /**
-     * Gets all known remote nodes with connections.
-     * 
-     * @return a set of node identifiers
-     */
+    public Set<String> getKnownNodes() {
+        return new HashSet<>(nodeToConnections.keySet());
+    }
     
-    /**
-     * Gets all local connections.
-     * 
-     * @return an unmodifiable map of connection ID to metadata
-     */
+    public Map<Long, ConnectionMeta> getAllLocalConnections() {
+        return Collections.unmodifiableMap(localConnections);
+    }
     
-    /**
-     * Gets all remote connections.
-     * 
-     * @return an unmodifiable map of connection ID to remote connection info
-     */
+    public Map<Long, RemoteConnection> getAllRemoteConnections() {
+        return Collections.unmodifiableMap(remoteConnections);
+    }
     
-    /**
-     * Gets the number of local connections.
-     * 
-     * @return the count of local connections
-     */
+    public int getLocalConnectionCount() {
+        return localConnections.size();
+    }
     
-    /**
-     * Gets the number of remote connections.
-     * 
-     * @return the count of remote connections
-     */
+    public int getRemoteConnectionCount() {
+        return remoteConnections.size();
+    }
     
-    /**
-     * Gets the total number of connections (local + remote).
-     * 
-     * @return the total connection count
-     */
+    public int getTotalConnectionCount() {
+        return localConnections.size() + remoteConnections.size();
+    }
     
-    /**
-     * Clears all connection registrations.
-     * 
-     * <p>Useful for resetting state during node restart or cluster reconfiguration.
-     */
+    public void clear() {
+        localConnections.clear();
+        remoteConnections.clear();
+        nodeToConnections.clear();
+    }
     
-    /**
-     * Gets the local node identifier.
-     * 
-     * @return the local node ID
-     */
+    public String getLocalNodeId() {
+        return localNodeId;
+    }
     
-    /**
-     * Removes a connection from the node-to-connections index.
-     * 
-     * <p>If the node has no more connections, removes the node entry entirely.
-     * 
-     * @param nodeId the node identifier
-     * @param connectionId the connection identifier
-     */
+    private void removeFromNodeIndex(String nodeId, long connectionId) {
+        Set<Long> connectionIds = nodeToConnections.get(nodeId);
+        if (connectionIds != null) {
+            connectionIds.remove(connectionId);
+            if (connectionIds.isEmpty()) {
+                nodeToConnections.remove(nodeId);
+            }
+        }
+    }
 }
