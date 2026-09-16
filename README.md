@@ -118,6 +118,23 @@ At 10K msg/s (100μs interval, 64B payload):
 | P99 | ~3.2ms |
 | Max | ~12ms |
 
+## Throughput Ladder (2026-09-16, single node)
+
+Server 16 workers (epoll), rate limit raised, topic backpressure on; 1 tight-loop TCP publisher; 2 WebSocket receivers; payload = 8B seq + N bytes. 100KB is already a maximum practical packet; 1MB exceeds the WS frame cap (512KB) and is out of range.
+
+Throughput (msg/s), delivery in parentheses:
+
+| Msg size | Subscribe (PUSH) | Broadcast (BROADCAST) | Point-to-point (REQUEST) |
+|---|---|---|---|
+| 10 B | 103K (63K) | 360K (233K) | 316K (316K) |
+| 100 B | 306K (65K) | 341K (323K) | 381K (381K) |
+| 1 KB | 100K (153K) | 283K (65K) | 293K (156K) |
+| 10 KB | 53K (106K, lossless) | 41K (82K, lossless) | 44K (44K) |
+| 50 KB | 11.6K (23K, lossless) | 9.6K (19K, lossless) | 11.1K, ~1.14 GB/s |
+| 100 KB | 5.7K (11.5K, lossless) | 5.6K (11.2K, lossless) | 5.3K |
+
+Fanout bandwidth converges at ~1.1 GB/s for 50-100KB packets. Small-packet (<1KB) sub-100% delivery is backpressure protection, not a leak. Single WebSocket connection discharge ceiling is ~195-200K msg/s regardless of command type: scale by adding nodes, not per-connection.
+
 ## Module Structure
 
 ```
