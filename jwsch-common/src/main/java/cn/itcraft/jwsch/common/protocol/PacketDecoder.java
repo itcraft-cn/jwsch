@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Packet decoder for jwsch protocol.
@@ -51,8 +52,29 @@ public final class PacketDecoder extends ByteToMessageDecoder {
         return COMPOSITE_CUMULATOR.cumulate(allocator, cumulation, input);
     };
     
+    /**
+     * 数据包总长度软上限（默认 200KB，硬上限 500KB，取值超限时强制钳制）。
+     * 超限数据包被丢弃（跳过），不关闭连接。
+     */
+    private final int maxPacketLength;
+    private final LongAdder droppedCount = new LongAdder();
+    
     public PacketDecoder() {
+        this(ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+    }
+    
+    public PacketDecoder(int maxPacketLength) {
         setCumulator(LIMITED_COMPOSITE_CUMULATOR);
+        this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig.normalizePacketLimit(maxPacketLength);
+    }
+    
+    /**
+     * 获取累计丢弃的过大数据包数量。
+     *
+     * @return 丢弃包总数
+     */
+    public long getDroppedCount() {
+        return droppedCount.sum();
     }
     
     @Override
@@ -80,7 +102,21 @@ public final class PacketDecoder extends ByteToMessageDecoder {
         
         int topicLength = headerLength - ProtocolConsts.FIXED_HEADER_LENGTH;
         
-        if (in.readableBytes() < topicLength + bodyLength) {
+        int payloadLength = topicLength + bodyLength;
+        if (headerLength + bodyLength > maxPacketLength) {
+            if (in.readableBytes() >= payloadLength) {
+                in.skipBytes(payloadLength);
+                droppedCount.increment();
+                LOGGER.warn("Oversize packet dropped: total={} limit={}, remote={}",
+                    headerLength + bodyLength, maxPacketLength,
+                    ctx.channel() != null ? ctx.channel().remoteAddress() : null);
+                return;
+            }
+            in.resetReaderIndex();
+            return;
+        }
+        
+        if (in.readableBytes() < payloadLength) {
             in.resetReaderIndex();
             return;
         }

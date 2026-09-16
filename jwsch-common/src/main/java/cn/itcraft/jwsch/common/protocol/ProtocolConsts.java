@@ -44,11 +44,26 @@ public final class ProtocolConsts {
     
     /**
      * Default maximum body length.
-     * 
+     *
      * <p>Used when no explicit limit is configured.
      */
     public static final int DEFAULT_MAX_BODY_LENGTH = 99999;
-    
+
+    /**
+     * 数据包总长度（Header+Body）软上限默认值（200KB）。
+     *
+     * <p>可通过 TCP 配置调整，但不得超过 {@link #MAX_PACKET_LENGTH_LIMIT} 硬上限。
+     * 超过软上限的数据包在收发两端直接丢弃，不关闭连接。
+     */
+    public static final int DEFAULT_MAX_PACKET_LENGTH = 200 * 1024;
+
+    /**
+     * 数据包硬上限（硬编码 500KB）。
+     *
+     * <p>任何配置值超过此上限时将被强制钳制为该值，不可放宽。
+     */
+    public static final int MAX_PACKET_LENGTH_LIMIT = 500 * 1024;
+
     private ProtocolConsts() {
     }
 }

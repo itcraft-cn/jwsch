@@ -1,5 +1,7 @@
 package cn.itcraft.jwsch.srv.config;
 
+import cn.itcraft.jwsch.common.protocol.ProtocolConsts;
+
 /**
  * TCP server configuration.
  *
@@ -13,6 +15,7 @@ package cn.itcraft.jwsch.srv.config;
  *     .tcpNoDelay(true)
  *     .keepAlive(true)
  *     .soBacklog(1024)
+ *     .maxPacketLength(204800)
  *     .build();
  * </pre>
  */
@@ -32,6 +35,11 @@ public final class TcpConfig {
     private final boolean keepAlive;
     /** Server socket backlog size */
     private final int soBacklog;
+    /**
+     * 数据包总长度软上限（默认 200KB，硬上限 500KB）。
+     * 超过软上限的入站包被丢弃；配置超过硬上限时强制钳制为硬上限。
+     */
+    private final int maxPacketLength;
     
     private TcpConfig(Builder builder) {
         this.port = builder.port;
@@ -41,6 +49,8 @@ public final class TcpConfig {
         this.tcpNoDelay = builder.tcpNoDelay;
         this.keepAlive = builder.keepAlive;
         this.soBacklog = builder.soBacklog;
+        this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig
+            .normalizePacketLimit(builder.maxPacketLength);
     }
     
     public int getPort() { return port; }
@@ -50,6 +60,7 @@ public final class TcpConfig {
     public boolean isTcpNoDelay() { return tcpNoDelay; }
     public boolean isKeepAlive() { return keepAlive; }
     public int getSoBacklog() { return soBacklog; }
+    public int getMaxPacketLength() { return maxPacketLength; }
     
     public static final class Builder {
         private int port = 9090;
@@ -59,6 +70,7 @@ public final class TcpConfig {
         private boolean tcpNoDelay = true;
         private boolean keepAlive = true;
         private int soBacklog = 1024;
+        private int maxPacketLength = ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;
         
         public Builder port(int port) { this.port = port; return this; }
         public Builder bossThreads(int bossThreads) { this.bossThreads = bossThreads; return this; }
@@ -67,6 +79,7 @@ public final class TcpConfig {
         public Builder tcpNoDelay(boolean tcpNoDelay) { this.tcpNoDelay = tcpNoDelay; return this; }
         public Builder keepAlive(boolean keepAlive) { this.keepAlive = keepAlive; return this; }
         public Builder soBacklog(int soBacklog) { this.soBacklog = soBacklog; return this; }
+        public Builder maxPacketLength(int maxPacketLength) { this.maxPacketLength = maxPacketLength; return this; }
         
         public TcpConfig build() { return new TcpConfig(this); }
     }

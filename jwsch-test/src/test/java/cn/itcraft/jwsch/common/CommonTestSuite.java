@@ -13,6 +13,7 @@ import cn.itcraft.jwsch.common.metrics.DefaultMetricsTest;
 import cn.itcraft.jwsch.common.protocol.CommandTest;
 import cn.itcraft.jwsch.common.protocol.PacketDecoderTest;
 import cn.itcraft.jwsch.common.protocol.PacketEncoderTest;
+import cn.itcraft.jwsch.common.protocol.PacketSizeLimitTest;
 import cn.itcraft.jwsch.common.protocol.PacketHeaderTest;
 import cn.itcraft.jwsch.common.protocol.ProtocolConstsTest;
 import cn.itcraft.jwsch.common.ssl.SslConfigTest;
@@ -39,6 +40,7 @@ import org.junit.runners.Suite;
     CommandTest.class,
     PacketDecoderTest.class,
     PacketEncoderTest.class,
+    PacketSizeLimitTest.class,
     PacketHeaderTest.class,
     ProtocolConstsTest.class,
     SslConfigTest.class,

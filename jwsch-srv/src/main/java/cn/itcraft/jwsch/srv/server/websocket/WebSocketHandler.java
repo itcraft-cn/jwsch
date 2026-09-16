@@ -54,6 +54,11 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
     private final PacketRouter packetRouter;
     private final ServerMetrics serverMetrics;
     private final int slowQueryThresholdMs;
+    /**
+     * 数据包总长度软上限（默认 200KB，硬上限 500KB），超限入站包被丢弃（不关闭连接）。
+     */
+    private final int maxPacketLength;
+    private final java.util.concurrent.atomic.LongAdder droppedOversize = new java.util.concurrent.atomic.LongAdder();
     private Long connectionId;
     
     /**
@@ -63,7 +68,8 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
      * @throws NullPointerException 如果 packetRouter 为 null
      */
     public WebSocketHandler(PacketRouter packetRouter) {
-        this(packetRouter, NoOpServerMetrics.INSTANCE, 0);
+        this(packetRouter, NoOpServerMetrics.INSTANCE, 0,
+            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
     }
     
     /**
@@ -74,7 +80,8 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
      * @throws NullPointerException 如果 packetRouter 为 null
      */
     public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics) {
-        this(packetRouter, serverMetrics, 0);
+        this(packetRouter, serverMetrics, 0,
+            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
     }
     
     /**
@@ -86,9 +93,26 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
      * @throws NullPointerException 如果 packetRouter 为 null
      */
     public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics, int slowQueryThresholdMs) {
+        this(packetRouter, serverMetrics, slowQueryThresholdMs,
+            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+    }
+    
+    /**
+     * 创建 WebSocket 处理器（指定包大小上限）。
+     *
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null，使用 NoOpServerMetrics）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @param maxPacketLength 数据包总长度软上限（硬上限 500KB，超限钳制）
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
+    public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics, int slowQueryThresholdMs,
+                            int maxPacketLength) {
         this.packetRouter = packetRouter;
         this.serverMetrics = serverMetrics;
         this.slowQueryThresholdMs = slowQueryThresholdMs;
+        this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig
+            .normalizePacketLimit(maxPacketLength);
     }
     
     /**
@@ -173,6 +197,15 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         }
     }
     
+    /**
+     * 获取累计丢弃的过大数据包数量。
+     *
+     * @return 丢弃包总数
+     */
+    public long getDroppedOversizeCount() {
+        return droppedOversize.sum();
+    }
+    
     private void handleBinaryFrame(ChannelHandlerContext ctx, BinaryWebSocketFrame frame) {
         long startTime = System.nanoTime();
         ByteBuf content = frame.content();
@@ -198,6 +231,14 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
             
             short headerLength = content.readShort();
             int bodyLength = content.readInt();
+            
+            if (headerLength + bodyLength > maxPacketLength) {
+                droppedOversize.increment();
+                serverMetrics.recordError(ErrorCode.PACKET_TOO_LARGE);
+                LOGGER.warn("Oversize WS packet dropped: total={} limit={}, connectionId={}",
+                    headerLength + bodyLength, maxPacketLength, connectionId);
+                return;
+            }
             byte command = content.readByte();
             short errorCode = content.readShort();
             long sourceId = content.readLong();

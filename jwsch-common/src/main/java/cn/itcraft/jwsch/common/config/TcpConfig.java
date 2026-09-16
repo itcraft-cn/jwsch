@@ -1,10 +1,20 @@
 package cn.itcraft.jwsch.common.config;
 
+import cn.itcraft.jwsch.common.protocol.ProtocolConsts;
+
 /**
  * TCP socket configuration options.
  * 
  * <p>Configures Netty channel options for TCP connections.
  * Used by both client and server connection factories.
+ * 
+ * <p>Packet size constraints:
+ * <ul>
+ *   <li>Soft limit ({@value ProtocolConsts#DEFAULT_MAX_PACKET_LENGTH}): default max packet
+ *       total length (header + body), adjustable via configuration</li>
+ *   <li>Hard limit ({@value ProtocolConsts#MAX_PACKET_LENGTH_LIMIT}): hardcoded ceiling;
+ *       any configured value above it is force-clamped to it</li>
+ * </ul>
  */
 public class TcpConfig {
     
@@ -62,6 +72,15 @@ public class TcpConfig {
      */
     private int writeTimeout = 0;
     
+    /**
+     * 数据包总长度软上限（默认 200KB）。
+     * 
+     * <p>超过此上限的包在收发两端被丢弃。
+     * 设置值大于硬上限（{@value ProtocolConsts#MAX_PACKET_LENGTH_LIMIT}）时
+     * 强制钳制为硬上限；非正值恢复默认。
+     */
+    private int maxPacketLength = ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;
+    
     public boolean isNodelay() {
         return nodelay;
     }
@@ -116,5 +135,26 @@ public class TcpConfig {
     
     public void setWriteTimeout(int writeTimeout) {
         this.writeTimeout = writeTimeout;
+    }
+    
+    public int getMaxPacketLength() {
+        return maxPacketLength;
+    }
+    
+    public void setMaxPacketLength(int maxPacketLength) {
+        this.maxPacketLength = normalizePacketLimit(maxPacketLength);
+    }
+    
+    /**
+     * 钳制包上限：超过硬上限强制回落为硬上限；非正值回落默认值。
+     */
+    public static int normalizePacketLimit(int value) {
+        if (value <= 0) {
+            return ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;
+        }
+        if (value > ProtocolConsts.MAX_PACKET_LENGTH_LIMIT) {
+            return ProtocolConsts.MAX_PACKET_LENGTH_LIMIT;
+        }
+        return value;
     }
 }

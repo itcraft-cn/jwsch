@@ -28,6 +28,7 @@ public enum ErrorCode {
     RATE_LIMITED(10, "Rate limited"),
     DECODE_FAILED(7, "Decode failed"),
     ENCODE_FAILED(8, "Encode failed"),
+    PACKET_TOO_LARGE(9, "Packet too large"),
     
     CONNECTION_CLOSED(1001, "Connection closed"),
     CONNECTION_TIMEOUT(1002, "Connection timeout"),

@@ -58,6 +58,11 @@ public final class WebSocketConfig {
     private final int sndbuf;
     /** SO_RCVBUF in bytes (0 = OS default) */
     private final int rcvbuf;
+    /**
+     * 数据包总长度软上限（默认 200KB，硬上限 500KB）。
+     * 超过软上限的入站 WS 数据包被直接丢弃，不关闭连接。
+     */
+    private final int maxPacketLength;
     
     private WebSocketConfig(Builder builder) {
         this.port = builder.port;
@@ -74,6 +79,8 @@ public final class WebSocketConfig {
         this.writeHighWaterMark = builder.writeHighWaterMark;
         this.sndbuf = builder.sndbuf;
         this.rcvbuf = builder.rcvbuf;
+        this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig
+            .normalizePacketLimit(builder.maxPacketLength);
     }
     
     public int getPort() { return port; }
@@ -90,6 +97,7 @@ public final class WebSocketConfig {
     public int getWriteHighWaterMark() { return writeHighWaterMark; }
     public int getSndbuf() { return sndbuf; }
     public int getRcvbuf() { return rcvbuf; }
+    public int getMaxPacketLength() { return maxPacketLength; }
     
     public static final class Builder {
         private int port = 8080;
@@ -106,6 +114,7 @@ public final class WebSocketConfig {
         private int writeHighWaterMark = DEFAULT_WRITE_HIGH_WATER_MARK;
         private int sndbuf = DEFAULT_SNDBUF;
         private int rcvbuf = DEFAULT_RCVBUF;
+        private int maxPacketLength = cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;
         
         public Builder port(int port) { this.port = port; return this; }
         public Builder path(String path) { this.path = path; return this; }
@@ -124,6 +133,7 @@ public final class WebSocketConfig {
         public Builder writeHighWaterMark(int writeHighWaterMark) { this.writeHighWaterMark = writeHighWaterMark; return this; }
         public Builder sndbuf(int sndbuf) { this.sndbuf = sndbuf; return this; }
         public Builder rcvbuf(int rcvbuf) { this.rcvbuf = rcvbuf; return this; }
+        public Builder maxPacketLength(int maxPacketLength) { this.maxPacketLength = maxPacketLength; return this; }
         
         public WebSocketConfig build() { return new WebSocketConfig(this); }
     }

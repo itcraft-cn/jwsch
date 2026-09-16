@@ -165,13 +165,17 @@ public final class ConfigLoader {
         Map<String, Object> ws = getMap(jwsch, "websocket");
         if (ws != null) {
             wsBuilder.port(getInt(ws, "port", 8080))
-                   .path(getString(ws, "path", "/ws"));
+                   .path(getString(ws, "path", "/ws"))
+                   .maxPacketLength(getInt(ws, "max-packet-length",
+                       cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH));
         }
         
         TcpConfig.Builder tcpBuilder = TcpConfig.builder();
         Map<String, Object> tcp = getMap(jwsch, "tcp");
         if (tcp != null) {
             tcpBuilder.port(getInt(tcp, "port", 9090));
+            tcpBuilder.maxPacketLength(getInt(tcp, "max-packet-length",
+                cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH));
         }
         
         ClusterConfig cluster = new ClusterConfig();

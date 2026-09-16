@@ -259,7 +259,7 @@ public class WebSocketServer {
                             .build();
                         
                         pipeline.addLast("webSocketProtocol", new WebSocketServerProtocolHandler(protocolConfig))
-                            .addLast("webSocketHandler", new WebSocketHandler(packetRouter, serverMetrics, slowQueryThresholdMs));
+                            .addLast("webSocketHandler", new WebSocketHandler(packetRouter, serverMetrics, slowQueryThresholdMs, config.getMaxPacketLength()));
                     }
                 });
             
