@@ -16,6 +16,16 @@ A Netty-based middleware platform for frontend-backend message forwarding and co
 
 **Recommended for internal network use only.** Authentication/authorization is not enforced on the WebSocket and TCP endpoints yet (the security module is reserved but not wired): any client that can reach the port can subscribe to arbitrary topics or push messages. Deploy behind a trusted network boundary or your own proxy; external exposure is not supported.
 
+## Packet Size Limits
+
+Both client and server enforce packet total length (Header + Body); oversize packets are dropped without closing the connection:
+
+- **Soft limit**: default 200KB, configurable (`tcp.max-packet-length` / `websocket.max-packet-length`)
+- **Hard limit**: 500KB (hardcoded); any configuration above it is force-clamped to 500KB
+- Drops log WARN (length / limit / packet hash); optional `log-oversize-content` dumps the first 200 bytes from a dedicated daemon thread that starts lazily (off by default, no thread at all when off)
+
+See MANUAL.md "5.2 Packet Size Limits".
+
 ## Quick Start
 
 ```bash

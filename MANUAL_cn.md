@@ -279,8 +279,34 @@ if (!remoteNode.getBloomFilter().mightHaveTopic(topicHash)) {
 | `Node left` | 节点离开 |
 | `Cluster sync` | 同步事件 |
 | `Cluster forward` | 消息转发 |
+| `Oversize packet dropped` | 数据包超过大小上限被丢弃（见 2.4 数据包大小限制） |
+| `Oversize packet content` | 超限包内容摘要（须开启 `log-oversize-content`，由 jwsch-oversize-dump 线程打印） |
 
-### 5.2 关键指标
+### 5.2 数据包大小限制
+
+客户端与服务端**两端同时约束**数据包总长度（Header + Body），超限直接丢弃、不关闭连接：
+
+| 限制 | 取值 | 说明 |
+|------|------|------|
+| 硬上限 | **500 KB（硬编码）** | 任何配置值超过 500KB 都会被强制钳制为 500KB，不可放宽 |
+| 软上限 | **200 KB（默认，可调整）** | 超过此值的包在收/发两端直接丢弃 |
+
+- 配置值超过硬上限时，实际生效值为 500KB；非正值回落为默认 200KB。
+- 丢弃时打印 WARN 日志，包含包长度、限制值与包 hash：`Oversize packet dropped: packetLength=... limit=... hash=...`
+- 可选配置 `log-oversize-content`（默认 false）：开启后丢弃的包字节进入有界队列，由独立的 `jwsch-oversize-dump` 守护线程打印**前 200 字节**（固定不可调整）；该线程在**发生第一次丢包时才懒启动**，配置关闭时完全不创建线程。
+- 生效位置：TCP 解码器/编码器（收发两端共建管线）、WebSocket 入站帧（`WebSocketHandler`）；配置键：`tcp.max-packet-length` / `websocket.max-packet-length`。
+
+```yaml
+jwsch:
+  tcp:
+    max-packet-length: 204800   # 软上限，默认 200KB，最多 500KB
+    log-oversize-content: false # 是否打印超限包前 200 字节内容
+  websocket:
+    max-packet-length: 204800
+    log-oversize-content: false
+```
+
+### 5.3 关键指标
 
 | 指标 | 说明 |
 |------|------|
@@ -290,7 +316,7 @@ if (!remoteNode.getBloomFilter().mightHaveTopic(topicHash)) {
 | `cluster.forward.count` | 转发消息数 |
 | `cluster.sync.duration` | 同步耗时 |
 
-### 5.3 健康检查
+### 5.4 健康检查
 
 ```bash
 # 检查节点状态

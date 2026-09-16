@@ -279,8 +279,34 @@ if (!remoteNode.getBloomFilter().mightHaveTopic(topicHash)) {
 | `Node left` | Node left |
 | `Cluster sync` | Sync event |
 | `Cluster forward` | Message forwarding |
+| `Oversize packet dropped` | Packet dropped due to size limit (see 5.2 packet size limits) |
+| `Oversize packet content` | Oversize packet content digest (requires `log-oversize-content`, printed by jwsch-oversize-dump thread) |
 
-### 5.2 Key Metrics
+### 5.2 Packet Size Limits
+
+Both client and server enforce packet total length (Header + Body); oversize packets are **dropped without closing the connection**:
+
+| Limit | Value | Notes |
+|------|------|------|
+| Hard limit | **500 KB (hardcoded)** | Any configured value above 500KB is force-clamped to 500KB, cannot be raised |
+| Soft limit | **200 KB (default, adjustable)** | Packets exceeding this value are dropped on both send and receive sides |
+
+- Config above the hard limit takes effect as 500KB; non-positive values fall back to the 200KB default.
+- On drop a WARN log is printed with packet length, limit and packet hash: `Oversize packet dropped: packetLength=... limit=... hash=...`
+- Optional `log-oversize-content` (default false): dropped packet bytes go to a bounded queue and a dedicated `jwsch-oversize-dump` daemon thread prints the **first 200 bytes** (fixed, not adjustable). The thread is lazily started on the first dropped packet; with the option off no thread is created at all.
+- Enforced in TCP decoder/encoder (both ends) and WebSocket ingress (`WebSocketHandler`); config keys: `tcp.max-packet-length` / `websocket.max-packet-length`.
+
+```yaml
+jwsch:
+  tcp:
+    max-packet-length: 204800   # soft limit, default 200KB, at most 500KB
+    log-oversize-content: false # dump first 200 bytes of dropped packets
+  websocket:
+    max-packet-length: 204800
+    log-oversize-content: false
+```
+
+### 5.3 Key Metrics
 
 | Metric | Description |
 |--------|-------------|
@@ -290,7 +316,7 @@ if (!remoteNode.getBloomFilter().mightHaveTopic(topicHash)) {
 | `cluster.forward.count` | Forwarded message count |
 | `cluster.sync.duration` | Sync duration |
 
-### 5.3 Health Check
+### 5.4 Health Check
 
 ```bash
 # Check node status
