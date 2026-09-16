@@ -171,7 +171,7 @@ public class TcpServer {
                 .childOption(ChannelOption.SO_SNDBUF, 4 * 1024 * 1024)
                 .childOption(ChannelOption.SO_RCVBUF, 4 * 1024 * 1024)
                 .childHandler(new TcpServerInitializer(packetRouter, serverMetrics, flowControlConfig, 
-                    config.getMaxPacketLength()));
+                    config.getMaxPacketLength(), config.isLogOversizeContent()));
             
             ChannelFuture future = bootstrap.bind(config.getPort()).sync();
             serverChannel = future.channel();

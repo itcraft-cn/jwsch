@@ -167,7 +167,8 @@ public final class ConfigLoader {
             wsBuilder.port(getInt(ws, "port", 8080))
                    .path(getString(ws, "path", "/ws"))
                    .maxPacketLength(getInt(ws, "max-packet-length",
-                       cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH));
+                       cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH))
+                   .logOversizeContent(getBool(ws, "log-oversize-content", false));
         }
         
         TcpConfig.Builder tcpBuilder = TcpConfig.builder();
@@ -176,6 +177,7 @@ public final class ConfigLoader {
             tcpBuilder.port(getInt(tcp, "port", 9090));
             tcpBuilder.maxPacketLength(getInt(tcp, "max-packet-length",
                 cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH));
+            tcpBuilder.logOversizeContent(getBool(tcp, "log-oversize-content", false));
         }
         
         ClusterConfig cluster = new ClusterConfig();

@@ -72,6 +72,26 @@ public class PacketSizeLimitTest {
     }
 
     @Test
+    public void testDecoderDropWithContentLogging() {
+        EmbeddedChannel ch = new EmbeddedChannel(new PacketDecoder(100, true));
+        ch.writeInbound(PacketWriter.write(buildPacket(300), UnpooledByteBufAllocator.DEFAULT));
+        assertNull("oversize should be dropped", ch.readInbound());
+        assertTrue("channel should stay open", ch.isOpen());
+        ch.finishAndReleaseAll();
+    }
+    
+    @Test
+    public void testEncoderDropWithContentLogging() {
+        EmbeddedChannel ch = new EmbeddedChannel(new PacketEncoder(100, true));
+        ch.writeOutbound(buildPacket(300));
+        assertEquals(0, ch.outboundMessages().size());
+        ch.writeOutbound(buildPacket(10));
+        Object sent = ch.readOutbound();
+        assertTrue(sent instanceof ByteBuf);
+        ch.finishAndReleaseAll();
+    }
+    
+    @Test
     public void testEncoderDropsOversizeOnWrite() {
         int limit = 100;
         EmbeddedChannel ch = new EmbeddedChannel(new PacketEncoder(limit));

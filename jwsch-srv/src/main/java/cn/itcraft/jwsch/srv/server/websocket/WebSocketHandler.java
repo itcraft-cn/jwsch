@@ -58,6 +58,7 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
      * 数据包总长度软上限（默认 200KB，硬上限 500KB），超限入站包被丢弃（不关闭连接）。
      */
     private final int maxPacketLength;
+    private final cn.itcraft.jwsch.common.protocol.OversizePacketLogger oversizeLogger;
     private final java.util.concurrent.atomic.LongAdder droppedOversize = new java.util.concurrent.atomic.LongAdder();
     private Long connectionId;
     
@@ -108,11 +109,30 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
      */
     public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics, int slowQueryThresholdMs,
                             int maxPacketLength) {
+        this(packetRouter, serverMetrics, slowQueryThresholdMs, maxPacketLength,
+            cn.itcraft.jwsch.common.protocol.OversizePacketLoggers.create(false));
+    }
+    
+    /**
+     * 创建 WebSocket 处理器（指定包大小上限与超限记录器）。
+     *
+     * @param packetRouter 数据包路由器
+     * @param serverMetrics 服务器指标收集器（可为 null，使用 NoOpServerMetrics）
+     * @param slowQueryThresholdMs 慢查询阈值（毫秒），0 表示禁用
+     * @param maxPacketLength 数据包总长度软上限（硬上限 500KB，超限钳制）
+     * @param oversizeLogger 过大数据包记录器（启动时固化实现）
+     * @throws NullPointerException 如果 packetRouter 为 null
+     */
+    public WebSocketHandler(PacketRouter packetRouter, ServerMetrics serverMetrics, int slowQueryThresholdMs,
+                            int maxPacketLength, cn.itcraft.jwsch.common.protocol.OversizePacketLogger oversizeLogger) {
         this.packetRouter = packetRouter;
         this.serverMetrics = serverMetrics;
         this.slowQueryThresholdMs = slowQueryThresholdMs;
         this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig
             .normalizePacketLimit(maxPacketLength);
+        this.oversizeLogger = oversizeLogger != null
+            ? oversizeLogger
+            : cn.itcraft.jwsch.common.protocol.OversizePacketLoggers.create(false);
     }
     
     /**
@@ -206,6 +226,13 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
         return droppedOversize.sum();
     }
     
+    /**
+     * 由包原始字节推导关联 hash（fix 定字段读取，无循环）。
+     */
+    private long dropHash(ByteBuf content) {
+        return cn.itcraft.jwsch.common.protocol.OversizePacketHasher.hash(content.duplicate(), 0);
+    }
+    
     private void handleBinaryFrame(ChannelHandlerContext ctx, BinaryWebSocketFrame frame) {
         long startTime = System.nanoTime();
         ByteBuf content = frame.content();
@@ -233,10 +260,14 @@ public class WebSocketHandler extends ChannelInboundHandlerAdapter {
             int bodyLength = content.readInt();
             
             if (headerLength + bodyLength > maxPacketLength) {
+                int packetLength = headerLength + bodyLength;
+                long hash = dropHash(content);
                 droppedOversize.increment();
                 serverMetrics.recordError(ErrorCode.PACKET_TOO_LARGE);
-                LOGGER.warn("Oversize WS packet dropped: total={} limit={}, connectionId={}",
-                    headerLength + bodyLength, maxPacketLength, connectionId);
+                LOGGER.warn("Oversize WS packet dropped: packetLength={} limit={} hash={}",
+                    packetLength, maxPacketLength, Long.toHexString(hash));
+                
+                oversizeLogger.onDropped(packetLength, maxPacketLength, hash, content.duplicate().retain());
                 return;
             }
             byte command = content.readByte();

@@ -57,15 +57,46 @@ public final class PacketDecoder extends ByteToMessageDecoder {
      * 超限数据包被丢弃（跳过），不关闭连接。
      */
     private final int maxPacketLength;
+    
+    /**
+     * 过大数据包记录器（启动时固化：队列化独立线程 或 空实现）。
+     */
+    private final OversizePacketLogger oversizeLogger;
     private final LongAdder droppedCount = new LongAdder();
     
     public PacketDecoder() {
-        this(ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+        this(ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH, false);
     }
     
     public PacketDecoder(int maxPacketLength) {
+        this(maxPacketLength, false);
+    }
+    
+    public PacketDecoder(int maxPacketLength, boolean logContent) {
+        this(maxPacketLength, OversizePacketLoggers.create(logContent));
+    }
+
+    public PacketDecoder(int maxPacketLength, OversizePacketLogger oversizeLogger) {
         setCumulator(LIMITED_COMPOSITE_CUMULATOR);
         this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig.normalizePacketLimit(maxPacketLength);
+        this.oversizeLogger = oversizeLogger != null ? oversizeLogger : OversizePacketLoggers.create(false);
+    }
+    
+    /**
+     * 提取 buf 可读范围内前 maxBytes 字节的十六进制摘要（双工限制）。
+     */
+    static String dumpFirstBytes(ByteBuf buf, int maxBytes) {
+        int len = Math.min(buf.readableBytes(), maxBytes);
+        byte[] bytes = new byte[len];
+        buf.duplicate().readBytes(bytes);
+        StringBuilder sb = new StringBuilder(len * 3);
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        if (buf.duplicate().readableBytes() > maxBytes) {
+            sb.append("...");
+        }
+        return sb.toString();
     }
     
     /**
@@ -105,11 +136,7 @@ public final class PacketDecoder extends ByteToMessageDecoder {
         int payloadLength = topicLength + bodyLength;
         if (headerLength + bodyLength > maxPacketLength) {
             if (in.readableBytes() >= payloadLength) {
-                in.skipBytes(payloadLength);
-                droppedCount.increment();
-                LOGGER.warn("Oversize packet dropped: total={} limit={}, remote={}",
-                    headerLength + bodyLength, maxPacketLength,
-                    ctx.channel() != null ? ctx.channel().remoteAddress() : null);
+                dropOversize(in, headerLength, bodyLength, payloadLength);
                 return;
             }
             in.resetReaderIndex();
@@ -167,8 +194,26 @@ public final class PacketDecoder extends ByteToMessageDecoder {
         return true;
     }
     
-    private String decodeTopic(ByteBuf in, int topicLength) {
-        if (topicLength <= 0) {
+    /**
+     * 过大数据包丢弃入口：
+     * 热路径仅拼一行原日志（大小/限制/hash）并回调记录器；
+     * 需要打印内容时（如 Transferrable 并可用）才投递只读切片（零复制引用），
+     * 由独立超限日志线程负责解析打印前 200 字节。
+     */
+    private void dropOversize(ByteBuf in, short headerLength, int bodyLength, int payloadLength) {
+        int packetStart = in.readerIndex() - ProtocolConsts.FIXED_HEADER_LENGTH;
+        int packetLength = headerLength + bodyLength;
+        long hash = OversizePacketHasher.hash(in, packetStart);
+        droppedCount.increment();
+        LOGGER.warn("Oversize packet dropped: packetLength={} limit={} hash={}",
+            packetLength, maxPacketLength, Long.toHexString(hash));
+        
+        oversizeLogger.onDropped(packetLength, maxPacketLength, hash,
+            in.duplicate().retain().setIndex(packetStart, packetStart + payloadLength));
+        in.skipBytes(payloadLength);
+    }
+    
+    private String decodeTopic(ByteBuf in, int topicLength) {        if (topicLength <= 0) {
             return null;
         }
         byte[] topicBytes = new byte[topicLength];

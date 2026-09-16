@@ -43,6 +43,10 @@ public class TcpServerInitializer extends ChannelInitializer<SocketChannel> {
      * 数据包总长度软上限（默认 200KB，硬上限 500KB），超限入站/出站包被丢弃。
      */
     private final int maxPacketLength;
+    /**
+     * 过大的数据包内容是否进队列由独立线程打印（启动时固化）。
+     */
+    private final cn.itcraft.jwsch.common.protocol.OversizePacketLogger oversizeLogger;
     
     /**
      * 使用默认的 ServerMetrics（null）和 FlowControlConfig 创建初始化器。
@@ -52,7 +56,7 @@ public class TcpServerInitializer extends ChannelInitializer<SocketChannel> {
      */
     public TcpServerInitializer(PacketRouter packetRouter) {
         this(packetRouter, null, FlowControlConfig.defaultConfig(),
-            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH, false);
     }
     
     /**
@@ -64,7 +68,7 @@ public class TcpServerInitializer extends ChannelInitializer<SocketChannel> {
      */
     public TcpServerInitializer(PacketRouter packetRouter, ServerMetrics serverMetrics) {
         this(packetRouter, serverMetrics, FlowControlConfig.defaultConfig(),
-            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH, false);
     }
     
     /**
@@ -78,7 +82,7 @@ public class TcpServerInitializer extends ChannelInitializer<SocketChannel> {
     public TcpServerInitializer(PacketRouter packetRouter, ServerMetrics serverMetrics, 
             FlowControlConfig flowControlConfig) {
         this(packetRouter, serverMetrics, flowControlConfig,
-            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+            cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH, false);
     }
     
     /**
@@ -91,12 +95,13 @@ public class TcpServerInitializer extends ChannelInitializer<SocketChannel> {
      * @throws NullPointerException 如果 packetRouter 为 null
      */
     public TcpServerInitializer(PacketRouter packetRouter, ServerMetrics serverMetrics, 
-            FlowControlConfig flowControlConfig, int maxPacketLength) {
+            FlowControlConfig flowControlConfig, int maxPacketLength, boolean logOversizeContent) {
         this.packetRouter = packetRouter;
         this.serverMetrics = serverMetrics;
         this.flowControlConfig = flowControlConfig != null ? flowControlConfig : FlowControlConfig.defaultConfig();
         this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig
             .normalizePacketLimit(maxPacketLength);
+        this.oversizeLogger = cn.itcraft.jwsch.common.protocol.OversizePacketLoggers.create(logOversizeContent);
     }
     
     /**
@@ -113,8 +118,8 @@ public class TcpServerInitializer extends ChannelInitializer<SocketChannel> {
             WRITER_IDLE_TIME_SECONDS, 
             ALL_IDLE_TIME_SECONDS, 
             TimeUnit.SECONDS));
-        pipeline.addLast("decoder", new PacketDecoder(maxPacketLength));
-        pipeline.addLast("encoder", new PacketEncoder(maxPacketLength));
+        pipeline.addLast("decoder", new PacketDecoder(maxPacketLength, oversizeLogger));
+        pipeline.addLast("encoder", new PacketEncoder(maxPacketLength, oversizeLogger));
         
         if (flowControlConfig.isInboundEnabled()) {
             LOGGER.info("L1 rate limiter enabled: maxTokens={}, burstSize={}", 

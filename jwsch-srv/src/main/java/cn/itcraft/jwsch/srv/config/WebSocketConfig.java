@@ -63,6 +63,10 @@ public final class WebSocketConfig {
      * 超过软上限的入站 WS 数据包被直接丢弃，不关闭连接。
      */
     private final int maxPacketLength;
+    /**
+     * 是否打印过大数据包前 200 字节内容（默认 false，进有界队列由独立线程打印）。
+     */
+    private final boolean logOversizeContent;
     
     private WebSocketConfig(Builder builder) {
         this.port = builder.port;
@@ -81,6 +85,7 @@ public final class WebSocketConfig {
         this.rcvbuf = builder.rcvbuf;
         this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig
             .normalizePacketLimit(builder.maxPacketLength);
+        this.logOversizeContent = builder.logOversizeContent;
     }
     
     public int getPort() { return port; }
@@ -98,6 +103,7 @@ public final class WebSocketConfig {
     public int getSndbuf() { return sndbuf; }
     public int getRcvbuf() { return rcvbuf; }
     public int getMaxPacketLength() { return maxPacketLength; }
+    public boolean isLogOversizeContent() { return logOversizeContent; }
     
     public static final class Builder {
         private int port = 8080;
@@ -115,6 +121,7 @@ public final class WebSocketConfig {
         private int sndbuf = DEFAULT_SNDBUF;
         private int rcvbuf = DEFAULT_RCVBUF;
         private int maxPacketLength = cn.itcraft.jwsch.common.protocol.ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;
+        private boolean logOversizeContent = false;
         
         public Builder port(int port) { this.port = port; return this; }
         public Builder path(String path) { this.path = path; return this; }
@@ -134,6 +141,7 @@ public final class WebSocketConfig {
         public Builder sndbuf(int sndbuf) { this.sndbuf = sndbuf; return this; }
         public Builder rcvbuf(int rcvbuf) { this.rcvbuf = rcvbuf; return this; }
         public Builder maxPacketLength(int maxPacketLength) { this.maxPacketLength = maxPacketLength; return this; }
+        public Builder logOversizeContent(boolean logOversizeContent) { this.logOversizeContent = logOversizeContent; return this; }
         
         public WebSocketConfig build() { return new WebSocketConfig(this); }
     }

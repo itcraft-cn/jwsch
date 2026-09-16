@@ -69,8 +69,8 @@ public final class TcpClientInitializer extends ChannelInitializer<SocketChannel
         }
         
         pipeline.addLast("idleState", new IdleStateHandler(0, config.getIdleTime(), 0, TimeUnit.SECONDS))
-            .addLast("decoder", new PacketDecoder(config.getMaxPacketLength()))
-            .addLast("encoder", new PacketEncoder(config.getMaxPacketLength()))
+            .addLast("decoder", new PacketDecoder(config.getMaxPacketLength(), config.isLogOversizeContent()))
+            .addLast("encoder", new PacketEncoder(config.getMaxPacketLength(), config.isLogOversizeContent()))
             .addLast("handler", new TcpHandler(config));
     }
 }

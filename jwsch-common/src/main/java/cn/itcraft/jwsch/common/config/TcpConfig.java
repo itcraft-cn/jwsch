@@ -81,6 +81,13 @@ public class TcpConfig {
      */
     private int maxPacketLength = ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;
     
+    /**
+     * 是否打印过大数据包的前 200 字节内容（默认 false）。
+     * 
+     * <p>启用后丢包内容进入有界队列，由独立的超限日志线程解析打印。
+     */
+    private boolean logOversizeContent = false;
+    
     public boolean isNodelay() {
         return nodelay;
     }
@@ -148,6 +155,14 @@ public class TcpConfig {
     /**
      * 钳制包上限：超过硬上限强制回落为硬上限；非正值回落默认值。
      */
+    public boolean isLogOversizeContent() {
+        return logOversizeContent;
+    }
+    
+    public void setLogOversizeContent(boolean logOversizeContent) {
+        this.logOversizeContent = logOversizeContent;
+    }
+    
     public static int normalizePacketLimit(int value) {
         if (value <= 0) {
             return ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH;

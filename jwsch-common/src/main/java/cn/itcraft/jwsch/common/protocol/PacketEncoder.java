@@ -32,14 +32,24 @@ public final class PacketEncoder extends MessageToByteEncoder<Packet> {
     private static final Logger LOGGER = LoggerFactory.getLogger(PacketEncoder.class);
     
     private final int maxPacketLength;
+    private final OversizePacketLogger oversizeLogger;
     private final LongAdder droppedCount = new LongAdder();
     
     public PacketEncoder() {
-        this(ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH);
+        this(ProtocolConsts.DEFAULT_MAX_PACKET_LENGTH, false);
     }
     
     public PacketEncoder(int maxPacketLength) {
+        this(maxPacketLength, false);
+    }
+    
+    public PacketEncoder(int maxPacketLength, boolean logContent) {
+        this(maxPacketLength, OversizePacketLoggers.create(logContent));
+    }
+    
+    public PacketEncoder(int maxPacketLength, OversizePacketLogger oversizeLogger) {
         this.maxPacketLength = cn.itcraft.jwsch.common.config.TcpConfig.normalizePacketLimit(maxPacketLength);
+        this.oversizeLogger = oversizeLogger != null ? oversizeLogger : OversizePacketLoggers.create(false);
     }
     
     /**
@@ -55,9 +65,18 @@ public final class PacketEncoder extends MessageToByteEncoder<Packet> {
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         if (msg instanceof Packet && totalLength((Packet) msg) > maxPacketLength) {
             Packet packet = (Packet) msg;
+            int packetLength = totalLength(packet);
+            long hash = hashOf(packet);
             droppedCount.increment();
-            LOGGER.warn("Oversize packet dropped on write: total={} limit={}, cmd={}, topic={}",
-                totalLength(packet), maxPacketLength, packet.getCommand(), packet.getTopic());
+            LOGGER.warn("Oversize packet dropped on write: packetLength={} limit={} hash={}",
+                packetLength, maxPacketLength, Long.toHexString(hash));
+            
+            ByteBuf bodyBuf = packet.getBodyBuf();
+            ByteBuf content = bodyBuf != null && bodyBuf.isReadable()
+                ? bodyBuf.duplicate().retain()
+                : null;
+            oversizeLogger.onDropped(packetLength, maxPacketLength, hash, content);
+            
             try {
                 io.netty.util.ReferenceCountUtil.release(msg);
             } catch (Exception ignore) {
@@ -68,6 +87,22 @@ public final class PacketEncoder extends MessageToByteEncoder<Packet> {
         }
         
         super.write(ctx, msg, promise);
+    }
+    
+    private long hashOf(Packet packet) {
+        PacketHeader header = packet.getHeader();
+        ByteBuf bodyBuf = packet.getBodyBuf();
+        long mixed = 0x9E3779B97F4A7C15L;
+        mixed ^= header.getHeaderLength();
+        mixed = Long.rotateLeft(mixed, 7) ^ header.getBodyLength();
+        mixed = Long.rotateLeft(mixed, 13) ^ (header.getCommand() & 0xFFL);
+        mixed = Long.rotateLeft(mixed, 17) ^ (header.getErrorCode() & 0xFFFFL);
+        mixed = Long.rotateLeft(mixed, 23) ^ header.getSourceId();
+        mixed = Long.rotateLeft(mixed, 29) ^ header.getTargetId();
+        if (bodyBuf != null && bodyBuf.readableBytes() >= 8) {
+            mixed = Long.rotateLeft(mixed, 31) ^ bodyBuf.getLong(bodyBuf.readerIndex());
+        }
+        return mixed;
     }
     
     private int totalLength(Packet packet) {
