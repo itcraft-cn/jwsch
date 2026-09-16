@@ -109,14 +109,8 @@ public final class TcpClient {
 
     /**
      * Start the client.
-     *
-     * <p>Initializes EventLoop and Bootstrap. If cluster mode is configured,
-     * resolves node addresses and creates the NodeSelector.
-     */
-    /**
-     * Start the client.
-     *
-     * <p>Initializes EventLoop and Bootstrap. If cluster mode is configured,
+     * <p>
+     * Initializes EventLoop and Bootstrap. If cluster mode is configured,
      * resolves node addresses and creates the NodeSelector.
      */
     public void start() {
@@ -164,15 +158,8 @@ public final class TcpClient {
 
     /**
      * Resolve cluster node addresses from config.
-     *
-     * <p>Expands nodes x [basePort .. basePort+portRange-1] into
-     * a flat list of InetSocketAddress. Base-port addresses come first
-     * to support PrioritySelector's preference.
-     */
-    /**
-     * Resolve cluster node addresses from config.
-     *
-     * <p>Expands nodes x [basePort .. basePort+portRange-1] into
+     * <p>
+     * Expands nodes x [basePort .. basePort+portRange-1] into
      * a flat list of InetSocketAddress. Base-port addresses come first
      * to support PrioritySelector's preference.
      *

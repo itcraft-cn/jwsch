@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -36,11 +37,17 @@ import java.util.concurrent.atomic.AtomicLong;
  *   <li>connectionId → Channel 映射（channelMap）</li>
  *   <li>所有 Channel 列表（channels）</li>
  *   <li>Topic → Channel 列表映射（topicChannels）</li>
- *   <li>连接最后活跃时间映射（lastActiveTimeMap）</li>
+ *   <li>连接最后活跃时间映射（lastActiveNanosMap）</li>
  * </ol>
  * 
  * <p>线程安全，支持高并发访问。
+ *
+ * <p><b>架构收敛说明</b>：生产环境的连接与订阅管理已统一由
+ * {@link cn.itcraft.jwsch.srv.router.PacketRouter} 承担（基于 TopicHash 的反向索引实现），
+ * 本类保留暴露与 Subscription 同源的公益性能力，仅推荐测试环境使用，
+ * 计划在后续版本按整体收敛目标进行移除。
  */
+@Deprecated
 public class WebSocketConnectionManager {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketConnectionManager.class);
@@ -53,7 +60,8 @@ public class WebSocketConnectionManager {
     private final Map<Long, Channel> channelMap;
     private final List<Channel> channels;
     private final Map<String, List<Channel>> topicChannels;
-    private final Map<Long, Long> lastActiveTimeMap;
+    private final Map<Channel, Set<String>> channelTopicIndex;
+    private final Map<Long, Long> lastActiveNanosMap;
     private final AtomicLong connectionIdCounter;
     
     private ScheduledExecutorService cleanupExecutor;
@@ -65,7 +73,8 @@ public class WebSocketConnectionManager {
         this.channelMap = new ConcurrentHashMap<>();
         this.channels = new CopyOnWriteArrayList<>();
         this.topicChannels = new ConcurrentHashMap<>();
-        this.lastActiveTimeMap = new ConcurrentHashMap<>();
+        this.channelTopicIndex = new ConcurrentHashMap<>();
+        this.lastActiveNanosMap = new ConcurrentHashMap<>();
         this.connectionIdCounter = new AtomicLong(0);
     }
     
@@ -92,7 +101,7 @@ public class WebSocketConnectionManager {
         long connectionId = connectionIdCounter.incrementAndGet();
         channelMap.put(connectionId, channel);
         channels.add(channel);
-        lastActiveTimeMap.put(connectionId, System.currentTimeMillis());
+        lastActiveNanosMap.put(connectionId, System.nanoTime());
         
         LOGGER.debug("Added channel: connectionId={}, total={}", connectionId, channels.size());
         return connectionId;
@@ -111,13 +120,13 @@ public class WebSocketConnectionManager {
         
         channelMap.put(connectionId, channel);
         channels.add(channel);
-        lastActiveTimeMap.put(connectionId, System.currentTimeMillis());
+        lastActiveNanosMap.put(connectionId, System.nanoTime());
         LOGGER.debug("Added channel: connectionId={}, total={}", connectionId, channels.size());
     }
     
     /**
      * 移除指定连接 ID 的 Channel。
-     * <p>同时从所有 Topic 订阅列表中移除该 Channel。
+     * <p>同时按连接反向索引从 Topic 订阅列表中移除该 Channel。
      *
      * @param connectionId 连接 ID
      */
@@ -125,10 +134,19 @@ public class WebSocketConnectionManager {
         Channel channel = channelMap.remove(connectionId);
         if (channel != null) {
             channels.remove(channel);
-            lastActiveTimeMap.remove(connectionId);
+            lastActiveNanosMap.remove(connectionId);
             
-            for (List<Channel> topicChannelList : topicChannels.values()) {
-                topicChannelList.remove(channel);
+            Set<String> topics = channelTopicIndex.remove(channel);
+            if (topics != null) {
+                for (String topic : topics) {
+                    List<Channel> topicChannelList = topicChannels.get(topic);
+                    if (topicChannelList != null) {
+                        topicChannelList.remove(channel);
+                        if (topicChannelList.isEmpty()) {
+                            topicChannels.remove(topic, topicChannelList);
+                        }
+                    }
+                }
             }
             
             LOGGER.debug("Removed channel: connectionId={}, total={}", connectionId, channels.size());
@@ -142,12 +160,12 @@ public class WebSocketConnectionManager {
      */
     public void updateActiveTime(Long connectionId) {
         if (connectionId != null) {
-            lastActiveTimeMap.put(connectionId, System.currentTimeMillis());
+            lastActiveNanosMap.put(connectionId, System.nanoTime());
         }
     }
     
     /**
-     * 订阅 Topic。
+     * 订阅 Topic（幂等，重复订阅不会重复接收消息）。
      *
      * @param connectionId 连接 ID
      * @param topic Topic 名称
@@ -158,7 +176,12 @@ public class WebSocketConnectionManager {
             return;
         }
         
-        topicChannels.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>()).add(channel);
+        List<Channel> topicChannelList =
+            topicChannels.computeIfAbsent(topic, k -> new CopyOnWriteArrayList<>());
+        if (!topicChannelList.contains(channel)) {
+            topicChannelList.add(channel);
+        }
+        channelTopicIndex.computeIfAbsent(channel, k -> ConcurrentHashMap.newKeySet()).add(topic);
         updateActiveTime(connectionId);
         LOGGER.debug("Subscribed topic: connectionId={}, topic={}", connectionId, topic);
     }
@@ -178,6 +201,13 @@ public class WebSocketConnectionManager {
         List<Channel> topicChannelList = topicChannels.get(topic);
         if (topicChannelList != null) {
             topicChannelList.remove(channel);
+            if (topicChannelList.isEmpty()) {
+                topicChannels.remove(topic, topicChannelList);
+            }
+        }
+        Set<String> topics = channelTopicIndex.get(channel);
+        if (topics != null) {
+            topics.remove(topic);
         }
         LOGGER.debug("Unsubscribed topic: connectionId={}, topic={}", connectionId, topic);
     }
@@ -244,17 +274,17 @@ public class WebSocketConnectionManager {
      * <p>检查所有连接，如果 Channel 不活跃或超过最大空闲时间，则关闭并移除。
      */
     public void removeInactiveChannels() {
-        long now = System.currentTimeMillis();
+        long now = System.nanoTime();
         List<Long> toRemove = new ArrayList<>();
         
-        for (Map.Entry<Long, Long> entry : lastActiveTimeMap.entrySet()) {
+        for (Map.Entry<Long, Long> entry : lastActiveNanosMap.entrySet()) {
             Long connectionId = entry.getKey();
             Long lastActive = entry.getValue();
             
             Channel channel = channelMap.get(connectionId);
             if (channel == null || !channel.isActive()) {
                 toRemove.add(connectionId);
-            } else if (now - lastActive > maxInactiveTimeMs) {
+            } else if (lastActive != null && TimeUnit.NANOSECONDS.toMillis(now - lastActive) > maxInactiveTimeMs) {
                 channel.close();
                 toRemove.add(connectionId);
                 LOGGER.info("Closed inactive channel: connectionId={}", connectionId);
@@ -380,7 +410,8 @@ public class WebSocketConnectionManager {
         channelMap.clear();
         channels.clear();
         topicChannels.clear();
-        lastActiveTimeMap.clear();
+        channelTopicIndex.clear();
+        lastActiveNanosMap.clear();
         stopInactiveCheck();
         LOGGER.info("Cleared all connections");
     }

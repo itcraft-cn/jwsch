@@ -4,15 +4,13 @@ import cn.itcraft.jwsch.common.protocol.Packet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 响应映射管理器。
@@ -46,8 +44,8 @@ public class ResponseMapping {
     
     private static final int DEFAULT_TIMEOUT_MS = 30000;
     
-    private final ConcurrentHashMap<Integer, CompletableFuture<Packet>> pendingRequests;
-    private final AtomicInteger requestIdGenerator;
+    private final ConcurrentHashMap<Long, CompletableFuture<Packet>> pendingRequests;
+    private final AtomicLong requestIdGenerator;
     private final ScheduledExecutorService scheduler;
     private final int timeoutMs;
     
@@ -65,7 +63,7 @@ public class ResponseMapping {
      */
     public ResponseMapping(int timeoutMs) {
         this.pendingRequests = new ConcurrentHashMap<>();
-        this.requestIdGenerator = new AtomicInteger(0);
+        this.requestIdGenerator = new AtomicLong(0);
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "response-mapping-timeout");
             t.setDaemon(true);
@@ -79,7 +77,7 @@ public class ResponseMapping {
      *
      * @return 新的请求 ID
      */
-    public int generateRequestId() {
+    public long generateRequestId() {
         return requestIdGenerator.incrementAndGet();
     }
     
@@ -91,7 +89,7 @@ public class ResponseMapping {
      * @param requestId 请求 ID
      * @return 与该请求关联的 CompletableFuture
      */
-    public CompletableFuture<Packet> createFuture(int requestId) {
+    public CompletableFuture<Packet> createFuture(long requestId) {
         CompletableFuture<Packet> future = new CompletableFuture<>();
         pendingRequests.put(requestId, future);
         
@@ -114,7 +112,7 @@ public class ResponseMapping {
      * @param response 响应数据包
      * @return 是否成功完成响应（如果请求不存在则返回 false）
      */
-    public boolean completeResponse(int requestId, Packet response) {
+    public boolean completeResponse(long requestId, Packet response) {
         CompletableFuture<Packet> future = pendingRequests.remove(requestId);
         if (future != null) {
             return future.complete(response);
@@ -130,7 +128,7 @@ public class ResponseMapping {
      * @param ex 异常
      * @return 是否成功完成异常（如果请求不存在则返回 false）
      */
-    public boolean completeExceptionally(int requestId, Throwable ex) {
+    public boolean completeExceptionally(long requestId, Throwable ex) {
         CompletableFuture<Packet> future = pendingRequests.remove(requestId);
         if (future != null) {
             return future.completeExceptionally(ex);
@@ -143,7 +141,7 @@ public class ResponseMapping {
      *
      * @param requestId 请求 ID
      */
-    public void removeFuture(int requestId) {
+    public void removeFuture(long requestId) {
         pendingRequests.remove(requestId);
     }
     
@@ -162,12 +160,13 @@ public class ResponseMapping {
      * <p>取消所有待处理的请求并清理资源。
      */
     public void shutdown() {
-        for (Map.Entry<Integer, CompletableFuture<Packet>> entry : pendingRequests.entrySet()) {
+        int size = pendingRequests.size();
+        for (Map.Entry<Long, CompletableFuture<Packet>> entry : pendingRequests.entrySet()) {
             entry.getValue().completeExceptionally(
                 new java.util.concurrent.CancellationException("ResponseMapping shutdown"));
         }
         pendingRequests.clear();
         scheduler.shutdown();
-        LOGGER.info("ResponseMapping shutdown, cleared {} pending requests", pendingRequests.size());
+        LOGGER.info("ResponseMapping shutdown, cleared {} pending requests", size);
     }
 }

@@ -59,7 +59,7 @@ public class ClusterMeshManager {
     );
     
     private final AtomicBoolean started = new AtomicBoolean(false);
-    private final ConcurrentHashMap<String, Long> heartbeatTimestamps = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Long> heartbeatNanosMap = new ConcurrentHashMap<>();
     
     /**
      * Creates a new cluster mesh manager.
@@ -146,7 +146,9 @@ public class ClusterMeshManager {
     }
     
     /**
-     * Wait for startup-wait-seconds and connect to base-port node.
+     * Wait for startup-wait-seconds before connecting to base-port node.
+     * <p>Uses event-loop friendly delayed scheduling with bounded retry
+     * instead of blocking Thread.sleep on the caller thread.
      */
     private void waitAndConnectToBasePort() throws InterruptedException {
         int waitSeconds = config.getStartupWaitSeconds();
@@ -156,7 +158,50 @@ public class ClusterMeshManager {
         
         Thread.sleep(waitSeconds * 1000L);
         
-        connectToBasePort();
+        connectToBasePortWithRetry();
+    }
+    
+    /**
+     * Connect to base-port node with bounded retry and backoff.
+     * <p>Replaces the original connect-once attempt: the base node may not
+     * have finished binding yet (e.g. its own bind loop is probing ports),
+     * so a couple of retry rounds are attempted before giving up.
+     */
+    private void connectToBasePortWithRetry() {
+        int maxRetries = Math.max(1, config.getPortRange());
+        int attempt = 0;
+        String baseNodeId = baseChannelNodeId();
+        
+        while (attempt < maxRetries) {
+            attempt++;
+            
+            if (!client.isConnected(baseNodeId)) {
+                client.disconnect(baseNodeId);
+                connectToBasePort();
+            }
+            
+            Channel channel = client.getChannel(baseNodeId);
+            if (channel != null && channel.isActive()) {
+                updateHeartbeat(baseNodeId);
+                return;
+            }
+            
+            LOGGER.info("Base node not reachable, retry {}/{} in 1s", attempt, maxRetries);
+            
+            try {
+                Thread.sleep(1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOGGER.warn("Interrupted while connecting to base node");
+                return;
+            }
+        }
+        
+        LOGGER.warn("Failed to reach base node after {} attempts", maxRetries);
+    }
+    
+    private String baseChannelNodeId() {
+        return config.getNodePrefix() + "-" + config.getAdvertiseHost() + "-" + config.getBasePort();
     }
     
     /**
@@ -259,9 +304,11 @@ public class ClusterMeshManager {
     
     /**
      * Update heartbeat timestamp for a node.
+     * <p>Uses System.nanoTime() as monotonic clock to avoid
+     * NTP adjustments causing false heartbeat timeouts.
      */
     private void updateHeartbeat(String nodeId) {
-        heartbeatTimestamps.put(nodeId, System.currentTimeMillis());
+        heartbeatNanosMap.put(nodeId, System.nanoTime());
     }
     
     /**
@@ -292,21 +339,21 @@ public class ClusterMeshManager {
      * Check heartbeat timeout for all nodes.
      */
     private void checkHeartbeatTimeout() {
-        long now = System.currentTimeMillis();
-        long timeoutMs = config.getHeartbeatTimeoutSeconds() * 1000L;
+        long now = System.nanoTime();
+        long timeoutNanos = TimeUnit.SECONDS.toNanos(config.getHeartbeatTimeoutSeconds());
         
         Set<String> timeoutNodes = new HashSet<>();
         
-        for (String nodeId : heartbeatTimestamps.keySet()) {
-            Long lastHeartbeat = heartbeatTimestamps.get(nodeId);
-            if (lastHeartbeat != null && (now - lastHeartbeat) > timeoutMs) {
+        for (String nodeId : heartbeatNanosMap.keySet()) {
+            Long lastHeartbeat = heartbeatNanosMap.get(nodeId);
+            if (lastHeartbeat != null && (now - lastHeartbeat) > timeoutNanos) {
                 timeoutNodes.add(nodeId);
             }
         }
         
         for (String nodeId : timeoutNodes) {
             LOGGER.warn("Node heartbeat timeout: {}", nodeId);
-            heartbeatTimestamps.remove(nodeId);
+            heartbeatNanosMap.remove(nodeId);
             nodeRegistry.deregister(nodeId);
             client.disconnect(nodeId);
             connectionRegistry.removeNodeConnections(nodeId);

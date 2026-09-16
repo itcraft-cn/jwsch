@@ -225,9 +225,9 @@ public class WebSocketServer {
                 .childOption(ChannelOption.TCP_NODELAY, config.isTcpNoDelay())
                 .childOption(ChannelOption.SO_KEEPALIVE, config.isKeepAlive())
                 .childOption(ChannelOption.WRITE_BUFFER_WATER_MARK,
-                    new WriteBufferWaterMark(1024 * 1024, 8 * 1024 * 1024))
-                .childOption(ChannelOption.SO_SNDBUF, 4 * 1024 * 1024)
-                .childOption(ChannelOption.SO_RCVBUF, 4 * 1024 * 1024)
+                    new WriteBufferWaterMark(config.getWriteLowWaterMark(), config.getWriteHighWaterMark()))
+                .childOption(ChannelOption.SO_SNDBUF, config.getSndbuf())
+                .childOption(ChannelOption.SO_RCVBUF, config.getRcvbuf())
                 .childHandler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     protected void initChannel(SocketChannel ch) {
@@ -239,7 +239,7 @@ public class WebSocketServer {
                         
                         pipeline.addLast("httpCodec", new HttpServerCodec())
                             .addLast("httpAggregator", new HttpObjectAggregator(config.getMaxFrameSize()))
-                            .addLast("idleState", new IdleStateHandler(180, 0, 0, TimeUnit.SECONDS))
+                            .addLast("idleState", new IdleStateHandler(config.getIdleTimeoutSeconds(), 0, 0, TimeUnit.SECONDS))
                             .addLast("flushConsolidation", new FlushConsolidationHandler(128, false));
                         
                         if (flowControlConfig.isOutboundEnabled()) {

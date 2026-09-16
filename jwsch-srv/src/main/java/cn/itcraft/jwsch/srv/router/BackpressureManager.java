@@ -77,8 +77,14 @@ public final class BackpressureManager {
     private final Set<Channel> tcpChannels = ConcurrentHashMap.newKeySet();
     private final Set<Channel> frontendChannels = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean autoReadDisabled = new AtomicBoolean(false);
+    private final AtomicBoolean releaseCheckScheduled = new AtomicBoolean(false);
     private final AtomicInteger nonWritableCount = new AtomicInteger(0);
-    private volatile long lastActivateTime = 0;
+    private volatile long lastActivateNanos = 0;
+    
+    /**
+     * 最近一次发布释放检查所使用的 EventLoop，仅作为重试通道的备选，
+     * 调度去重由 releaseCheckScheduled 保证，此字段不作为同步状态使用。
+     */
     private volatile EventLoop scheduledEventLoop = null;
     
     /**
@@ -115,6 +121,7 @@ public final class BackpressureManager {
         }
         LOGGER.debug("Frontend channel registered: writable={}, nonWritableCount={}", 
             channel.isWritable(), nonWritableCount.get());
+        checkAndDisableAutoRead();
     }
     
     /**
@@ -171,7 +178,7 @@ public final class BackpressureManager {
     
     private void disableAutoReadOnAllTcpChannels() {
         if (autoReadDisabled.compareAndSet(false, true)) {
-            lastActivateTime = System.currentTimeMillis();
+            lastActivateNanos = System.nanoTime();
             scheduledEventLoop = null;
             
             int disabledCount = 0;
@@ -191,27 +198,26 @@ public final class BackpressureManager {
     }
     
     private void scheduleReleaseCheck(EventLoop eventLoop) {
-        if (!autoReadDisabled.get()) {
+        if (!autoReadDisabled.get() || eventLoop == null) {
             return;
         }
         
-        if (scheduledEventLoop != null && scheduledEventLoop == eventLoop) {
-            return;
+        if (releaseCheckScheduled.compareAndSet(false, true)) {
+            scheduledEventLoop = eventLoop;
+            long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastActivateNanos);
+            long delay = Math.max(0, RELEASE_COOLDOWN_MS - elapsedMs);
+            
+            eventLoop.schedule(() -> {
+                tryReleaseAutoRead();
+            }, delay, TimeUnit.MILLISECONDS);
+            
+            LOGGER.debug("Scheduled release check: delay={}ms, elapsed={}ms", delay, elapsedMs);
         }
-        
-        scheduledEventLoop = eventLoop;
-        long elapsed = System.currentTimeMillis() - lastActivateTime;
-        long delay = Math.max(0, RELEASE_COOLDOWN_MS - elapsed);
-        
-        eventLoop.schedule(() -> {
-            tryReleaseAutoRead();
-        }, delay, TimeUnit.MILLISECONDS);
-        
-        LOGGER.debug("Scheduled release check: delay={}ms, elapsed={}ms", delay, elapsed);
     }
     
     private void tryReleaseAutoRead() {
         if (!autoReadDisabled.get()) {
+            releaseCheckScheduled.set(false);
             return;
         }
         
@@ -219,21 +225,16 @@ public final class BackpressureManager {
         int total = frontendChannels.size();
         
         if (total == 0) {
+            releaseCheckScheduled.set(false);
             return;
         }
         
         double ratio = nonWritable / (double) total;
         
-        if (ratio > RELEASE_THRESHOLD) {
-            LOGGER.debug("Cannot release: ratio={} > threshold={}", ratio, RELEASE_THRESHOLD);
-            scheduledEventLoop = null;
-            return;
-        }
+        long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastActivateNanos);
         
-        long elapsed = System.currentTimeMillis() - lastActivateTime;
-        if (elapsed < RELEASE_COOLDOWN_MS) {
-            LOGGER.debug("Cannot release: cooldown not elapsed ({}ms < {}ms)", 
-                elapsed, RELEASE_COOLDOWN_MS);
+        if (elapsed < RELEASE_COOLDOWN_MS || ratio > RELEASE_THRESHOLD) {
+            scheduleRetryReleaseCheck(total, nonWritable, ratio, elapsed);
             return;
         }
         
@@ -250,7 +251,35 @@ public final class BackpressureManager {
                 "nonWritable={}/{}, cooldown={}ms", enabledCount, nonWritable, total, elapsed);
         }
         
+        releaseCheckScheduled.set(false);
         scheduledEventLoop = null;
+    }
+    
+    private void scheduleRetryReleaseCheck(int total, int nonWritable, double ratio, long elapsed) {
+        LOGGER.debug("Release check deferred: nonWritable={}/{}, ratio={}, elapsed={}ms",
+            nonWritable, total, ratio, elapsed);
+        
+        if (autoReadDisabled.get()) {
+            EventLoop loop = scheduledEventLoop;
+            if (loop != null && loop.isShuttingDown()) {
+                scheduledEventLoop = null;
+            }
+            
+            EventLoop retryLoop = loop != null && !loop.isShuttingDown() ? loop : null;
+            
+            if (retryLoop == null) {
+                onRetryLoopMissing(total, nonWritable, ratio);
+                return;
+            }
+            
+            retryLoop.schedule(this::tryReleaseAutoRead, RELEASE_COOLDOWN_MS, TimeUnit.MILLISECONDS);
+        }
+    }
+    
+    private void onRetryLoopMissing(int total, int nonWritable, double ratio) {
+        releaseCheckScheduled.set(false);
+        LOGGER.debug("No event loop available for release retry: nonWritable={}/{} ({}%)",
+            nonWritable, total, (int) (100 * ratio));
     }
     
     /**
@@ -299,7 +328,8 @@ public final class BackpressureManager {
         frontendChannels.clear();
         autoReadDisabled.set(false);
         nonWritableCount.set(0);
-        lastActivateTime = 0;
+        releaseCheckScheduled.set(false);
         scheduledEventLoop = null;
+        lastActivateNanos = 0;
     }
 }

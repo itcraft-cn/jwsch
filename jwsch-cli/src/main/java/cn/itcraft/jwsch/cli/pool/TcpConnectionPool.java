@@ -178,11 +178,6 @@ public class TcpConnectionPool {
             Channel[] newArray = newList.toArray(new Channel[0]);
             if (ref.compareAndSet(oldArray, newArray)) {
                 LOGGER.debug("Removed channel from pool: service={}", serviceName);
-                
-                if (newArray.length == 0) {
-                    channelArrays.remove(serviceName);
-                    counters.remove(serviceName);
-                }
                 return;
             }
         }
@@ -300,10 +295,6 @@ public class TcpConnectionPool {
             
             Channel[] newArray = activeList.toArray(new Channel[0]);
             if (ref.compareAndSet(oldArray, newArray)) {
-                if (newArray.length == 0) {
-                    channelArrays.remove(serviceName);
-                    counters.remove(serviceName);
-                }
                 LOGGER.debug("Removed inactive channels for service: {}", serviceName);
                 return;
             }

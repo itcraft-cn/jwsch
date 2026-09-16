@@ -12,6 +12,10 @@ A Netty-based middleware platform for frontend-backend message forwarding and co
 - **Zero Copy**: Netty ByteBuf slice forwarding reduces memory copying
 - **High Availability**: Automatic node discovery, heartbeat detection, failover
 
+## Security Notice
+
+**Recommended for internal network use only.** Authentication/authorization is not enforced on the WebSocket and TCP endpoints yet (the security module is reserved but not wired): any client that can reach the port can subscribe to arbitrary topics or push messages. Deploy behind a trusted network boundary or your own proxy; external exposure is not supported.
+
 ## Quick Start
 
 ```bash

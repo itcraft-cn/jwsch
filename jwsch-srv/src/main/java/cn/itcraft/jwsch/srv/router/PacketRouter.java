@@ -288,7 +288,7 @@ public class PacketRouter {
         
         ServiceInstance selected = loadBalance.select(instances);
         
-        int requestId = responseMapping.generateRequestId();
+        long requestId = responseMapping.generateRequestId();
         CompletableFuture<Packet> future = responseMapping.createFuture(requestId);
         
         Channel channel = backendConnections.get(serviceName);
@@ -345,7 +345,12 @@ public class PacketRouter {
         try {
             for (Channel channel : activeChannels) {
                 ByteBuf slice = encoded.retainedSlice();
-                channel.writeAndFlush(new BinaryWebSocketFrame(slice));
+                try {
+                    channel.writeAndFlush(new BinaryWebSocketFrame(slice));
+                } catch (Exception e) {
+                    slice.release();
+                    LOGGER.debug("Broadcast write failed: channel={}, error={}", channel, e.getMessage());
+                }
             }
         } finally {
             encoded.release();
@@ -414,7 +419,12 @@ public class PacketRouter {
         try {
             for (Channel channel : activeChannels) {
                 ByteBuf slice = encoded.retainedSlice();
-                channel.write(new BinaryWebSocketFrame(slice));
+                try {
+                    channel.write(new BinaryWebSocketFrame(slice));
+                } catch (Exception e) {
+                    slice.release();
+                    LOGGER.debug("Topic broadcast write failed: channel={}, error={}", channel, e.getMessage());
+                }
             }
             
             for (Channel channel : activeChannels) {
@@ -424,9 +434,7 @@ public class PacketRouter {
             encoded.release();
         }
         
-        if (topic != null) {
-            topicStatsManager.recordMessage(topic, packet.getHeader().getCommand(), encodedSize);
-        }
+        topicStatsManager.recordMessage(topic, packet.getHeader().getCommand(), encodedSize);
     }
     
     /**

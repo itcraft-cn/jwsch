@@ -24,8 +24,8 @@ public class ResponseMappingTest {
     
     @Test
     public void testGenerateRequestId() {
-        int id1 = responseMapping.generateRequestId();
-        int id2 = responseMapping.generateRequestId();
+        long id1 = responseMapping.generateRequestId();
+        long id2 = responseMapping.generateRequestId();
         
         assertNotEquals(id1, id2);
         assertTrue(id1 > 0);
@@ -33,7 +33,7 @@ public class ResponseMappingTest {
     
     @Test
     public void testCreateFuture() {
-        int requestId = responseMapping.generateRequestId();
+        long requestId = responseMapping.generateRequestId();
         CompletableFuture<Packet> future = responseMapping.createFuture(requestId);
         
         assertNotNull(future);
@@ -43,7 +43,7 @@ public class ResponseMappingTest {
     
     @Test
     public void testCompleteResponse() {
-        int requestId = responseMapping.generateRequestId();
+        long requestId = responseMapping.generateRequestId();
         CompletableFuture<Packet> future = responseMapping.createFuture(requestId);
         
         Packet response = createTestPacket();
@@ -63,7 +63,7 @@ public class ResponseMappingTest {
     
     @Test
     public void testTimeout() throws Exception {
-        int requestId = responseMapping.generateRequestId();
+        long requestId = responseMapping.generateRequestId();
         CompletableFuture<Packet> future = responseMapping.createFuture(requestId);
         
         try {
@@ -79,7 +79,7 @@ public class ResponseMappingTest {
     
     @Test
     public void testRemoveFuture() {
-        int requestId = responseMapping.generateRequestId();
+        long requestId = responseMapping.generateRequestId();
         responseMapping.createFuture(requestId);
         
         responseMapping.removeFuture(requestId);
