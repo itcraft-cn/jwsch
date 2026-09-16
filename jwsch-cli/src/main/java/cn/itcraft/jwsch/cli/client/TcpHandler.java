@@ -93,6 +93,12 @@ public class TcpHandler extends SimpleChannelInboundHandler<Packet> {
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
+            if (connectionId == 0) {
+                LOGGER.info("Channel idle before connection established, closing: remote={}", 
+                    ctx.channel().remoteAddress());
+                ctx.close();
+                return;
+            }
             LOGGER.debug("Channel idle: {}, connectionId={}", e.state(), connectionId);
             sendHeartbeat(ctx);
         } else {

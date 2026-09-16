@@ -43,17 +43,17 @@ public class CommandTest {
     
     @Test
     public void testClusterSync() {
-        assertEquals(0x10, Command.CLUSTER_SYNC);
+        assertEquals(0x12, Command.CLUSTER_SYNC);
     }
     
     @Test
     public void testClusterForward() {
-        assertEquals(0x11, Command.CLUSTER_FORWARD);
+        assertEquals(0x13, Command.CLUSTER_FORWARD);
     }
     
     @Test
     public void testClusterBroadcast() {
-        assertEquals(0x12, Command.CLUSTER_BROADCAST);
+        assertEquals(0x14, Command.CLUSTER_BROADCAST);
     }
     
     @Test
@@ -73,9 +73,9 @@ public class CommandTest {
     @Test
     public void testIsValid_invalidCommands() {
         assertFalse(Command.isValid((byte) 0x00));
-        assertFalse(Command.isValid((byte) 0x08));
         assertFalse(Command.isValid((byte) 0x09));
         assertFalse(Command.isValid((byte) 0x0F));
-        assertFalse(Command.isValid((byte) 0x13));
+        assertFalse(Command.isValid((byte) 0x16));
+        assertFalse(Command.isValid((byte) 0x7F));
     }
 }

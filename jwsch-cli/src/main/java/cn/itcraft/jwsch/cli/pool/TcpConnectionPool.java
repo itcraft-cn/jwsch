@@ -102,7 +102,8 @@ public class TcpConnectionPool {
      * 获取服务的连接（轮询策略）。
      * 
      * <p>使用 LongAdder 实现高性能轮询计数。
-     * 如果获取的连接不活跃，会移除无效连接并返回 null。
+     * 从轮询点位开始扫描，跳过不活跃连接，
+     * 全部不可用时清理无效连接并返回 null。
      * 
      * @param serviceName 服务名
      * @return 活跃的 Channel，如果没有可用连接则返回 null
@@ -125,13 +126,18 @@ public class TcpConnectionPool {
             return null;
         }
         
+        int length = channels.length;
         counter.increment();
-        int index = (int) (counter.sum() % channels.length);
-        Channel channel = channels[index];
+        long sequence = counter.sum();
+        int startIndex = (int) (sequence % length);
         
-        if (channel != null && channel.isActive()) {
-            LOGGER.debug("Got channel from pool: service={}, index={}", serviceName, index);
-            return channel;
+        for (int scanned = 0; scanned < length; scanned++) {
+            Channel channel = channels[(startIndex + scanned) % length];
+            if (channel != null && channel.isActive()) {
+                LOGGER.debug("Got channel from pool: service={}, index={}", 
+                    serviceName, (startIndex + scanned) % length);
+                return channel;
+            }
         }
         
         removeInactiveChannels(serviceName, ref);

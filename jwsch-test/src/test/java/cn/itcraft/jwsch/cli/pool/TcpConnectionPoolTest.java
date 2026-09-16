@@ -171,8 +171,24 @@ public class TcpConnectionPoolTest {
         
         Channel retrieved = pool.getChannel("test-service");
         
-        assertNull(retrieved);
+        assertEquals("Should skip inactive channel and return active one",
+            activeChannel, retrieved);
         
         activeChannel.finish();
+    }
+    
+    @Test
+    public void testGetChannelReturnsNullWhenAllInactive() {
+        EmbeddedChannel channelA = new EmbeddedChannel();
+        channelA.close().awaitUninterruptibly();
+        
+        EmbeddedChannel channelB = new EmbeddedChannel();
+        channelB.close().awaitUninterruptibly();
+        
+        pool.addChannel("test-service", channelA);
+        pool.addChannel("test-service", channelB);
+        
+        assertNull(pool.getChannel("test-service"));
+        assertEquals(0, pool.getActiveConnectionCount("test-service"));
     }
 }

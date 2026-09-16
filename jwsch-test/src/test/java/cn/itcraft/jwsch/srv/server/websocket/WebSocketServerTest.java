@@ -4,8 +4,6 @@ import cn.itcraft.jwsch.srv.config.WebSocketConfig;
 import cn.itcraft.jwsch.srv.router.PacketRouter;
 import cn.itcraft.jwsch.srv.router.TopicSubscription;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.concurrent.DefaultThreadFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,10 +86,10 @@ public class WebSocketServerTest {
     
     @Test
     public void testWithSharedEventLoop() throws InterruptedException {
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1, 
-            new DefaultThreadFactory("shared-ws-boss", true));
-        EventLoopGroup workerGroup = new NioEventLoopGroup(1, 
-            new DefaultThreadFactory("shared-ws-worker", true));
+        EventLoopGroup bossGroup = cn.itcraft.jwsch.common.eventloop.NativeTransport
+            .createEventLoopGroup(1, "shared-ws-boss");
+        EventLoopGroup workerGroup = cn.itcraft.jwsch.common.eventloop.NativeTransport
+            .createEventLoopGroup(1, "shared-ws-worker");
         
         try {
             WebSocketServer server = new WebSocketServer(config, packetRouter, 

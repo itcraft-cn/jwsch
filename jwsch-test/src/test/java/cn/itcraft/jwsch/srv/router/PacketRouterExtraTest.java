@@ -247,7 +247,8 @@ public class PacketRouterExtraTest {
         
         router.broadcastToTopic("test-topic", packet);
         
-        verify(channel).writeAndFlush(any());
+        verify(channel).write(any());
+        verify(channel).flush();
     }
     
     @Test

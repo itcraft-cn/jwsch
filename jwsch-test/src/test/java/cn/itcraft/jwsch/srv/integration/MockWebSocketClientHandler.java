@@ -1,5 +1,6 @@
 package cn.itcraft.jwsch.srv.integration;
 
+import cn.itcraft.jwsch.common.protocol.Command;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.FullHttpResponse;
@@ -73,6 +74,12 @@ public class MockWebSocketClientHandler extends ChannelInboundHandlerAdapter {
         } else if (frame instanceof BinaryWebSocketFrame) {
             byte[] bytes = new byte[frame.content().readableBytes()];
             frame.content().readBytes(bytes);
+            
+            if (isSystemConnectResponse(bytes)) {
+                LOGGER.debug("Received system CONNECT_RESPONSE: {} bytes", bytes.length);
+                return;
+            }
+            
             messageCount.incrementAndGet();
             messageLatch.countDown();
             LOGGER.info("Received binary: {} bytes", bytes.length);
@@ -81,6 +88,10 @@ public class MockWebSocketClientHandler extends ChannelInboundHandlerAdapter {
         } else if (frame instanceof CloseWebSocketFrame) {
             ctx.close();
         }
+    }
+    
+    private boolean isSystemConnectResponse(byte[] bytes) {
+        return bytes.length >= 12 && bytes[8] == Command.CONNECT_RESPONSE;
     }
     
     @Override
