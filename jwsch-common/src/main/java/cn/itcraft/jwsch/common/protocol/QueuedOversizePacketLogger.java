@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
@@ -30,17 +31,33 @@ final class QueuedOversizePacketLogger implements OversizePacketLogger {
      */
     private static final int QUEUE_CAPACITY = 64;
 
-    private final ScheduledExecutorService executor;
+    /**
+     * 日志线程懒启动：logOversizeContent=false 时不创建线程，
+     * 首次 onDropped（即配置开启后首个超限包）才启动。
+     */
+    private volatile ScheduledExecutorService executor;
+    private final AtomicBoolean executorStarted = new AtomicBoolean(false);
     private final LongAdder queueFullCount = new LongAdder();
 
     static QueuedOversizePacketLogger INSTANCE = new QueuedOversizePacketLogger();
 
     private QueuedOversizePacketLogger() {
-        this.executor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "jwsch-oversize-dump");
-            t.setDaemon(true);
-            return t;
-        });
+    }
+
+    private ScheduledExecutorService ensureExecutor() {
+        if (executorStarted.compareAndSet(false, true)) {
+            ScheduledThreadPoolExecutor e = new ScheduledThreadPoolExecutor(1, r -> {
+                Thread t = new Thread(r, "jwsch-oversize-dump");
+                t.setDaemon(true);
+                return t;
+            });
+            e.setRemoveOnCancelPolicy(true);
+            executor = e;
+            return e;
+        }
+        // 极小概率首启竞态：直到字段可见
+        ScheduledExecutorService e = executor;
+        return e != null ? e : ensureExecutor();
     }
 
     @Override
@@ -49,7 +66,7 @@ final class QueuedOversizePacketLogger implements OversizePacketLogger {
             return;
         }
         try {
-            executor.schedule(() -> {
+            ensureExecutor().schedule(() -> {
                 try {
                     LOGGER.warn("Oversize packet content: hash={}, length={}, limit={}, firstBytes={}",
                         Long.toHexString(hash), packetLength, limit,
