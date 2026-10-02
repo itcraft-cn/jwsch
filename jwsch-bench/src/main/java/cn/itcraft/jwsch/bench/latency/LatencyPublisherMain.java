@@ -27,6 +27,7 @@ public final class LatencyPublisherMain {
      *             --topic <topic>       主题
      *             --interval <micros>   发送间隔（微秒）
      *             --payloadSize <bytes> 负载大小（字节）
+     *             --clock <mode>        时间戳时钟：nano（同机，默认）| wall（跨机，currentTimeMillis）
      *             --duration <minutes>  运行时长（0表示无限）
      *             --help, -h            显示帮助信息
      */
@@ -37,6 +38,7 @@ public final class LatencyPublisherMain {
         long interval = 100;
         int payloadSize = 64;
         int duration = 1;
+        String clock = "nano";
         
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -50,6 +52,8 @@ public final class LatencyPublisherMain {
                 interval = Long.parseLong(args[++i]);
             } else if ("--payloadSize".equals(arg) && i + 1 < args.length) {
                 payloadSize = Integer.parseInt(args[++i]);
+            } else if ("--clock".equals(arg) && i + 1 < args.length) {
+                clock = args[++i];
             } else if ("--duration".equals(arg) && i + 1 < args.length) {
                 duration = Integer.parseInt(args[++i]);
             } else if ("--help".equals(arg) || "-h".equals(arg)) {
@@ -58,12 +62,14 @@ public final class LatencyPublisherMain {
             }
         }
         
-        printBanner(host, tcpPort, topic, interval, payloadSize, duration);
+        boolean wallClock = "wall".equalsIgnoreCase(clock) || "millis".equalsIgnoreCase(clock);
+        
+        printBanner(host, tcpPort, topic, interval, payloadSize, duration, wallClock);
         
         LatencyPublisher publisher = null;
         
         try {
-            publisher = new LatencyPublisher(host, tcpPort, topic, interval, payloadSize);
+            publisher = new LatencyPublisher(host, tcpPort, topic, interval, payloadSize, wallClock);
             publisher.start();
             
             System.out.println("PUBLISHER_READY");
@@ -98,15 +104,17 @@ public final class LatencyPublisherMain {
      * @param interval    发送间隔（微秒）
      * @param payloadSize 负载大小（字节）
      * @param duration    运行时长（分钟）
+     * @param wallClock   true 表示使用墙钟时间戳（跨机），false 表示 nanoTime（同机）
      */
     private static void printBanner(String host, int tcpPort, String topic, 
-                                    long interval, int payloadSize, int duration) {
+                                    long interval, int payloadSize, int duration, boolean wallClock) {
         System.out.println("=== Latency Test Publisher ===");
         System.out.println("Host: " + host);
         System.out.println("TCP Port: " + tcpPort);
         System.out.println("Topic: " + topic);
         System.out.println("Send Interval: " + interval + "μs");
         System.out.println("Payload Size: " + payloadSize + " bytes");
+        System.out.println("Clock: " + (wallClock ? "wall (currentTimeMillis)" : "nano (nanoTime)"));
         System.out.println("Duration: " + duration + " minute(s)");
         System.out.println();
     }
@@ -123,6 +131,7 @@ public final class LatencyPublisherMain {
         System.out.println("  --topic <topic>        Topic (default: /topic/latency)");
         System.out.println("  --interval <micros>    Send interval in microseconds (default: 100)");
         System.out.println("  --payloadSize <bytes>  Payload size (default: 64)");
+        System.out.println("  --clock <mode>         nano (same host, default) | wall (cross host)");
         System.out.println("  --duration <minutes>   Duration in minutes, 0=unlimited (default: 1)");
         System.out.println("  --help, -h             Show this help");
         System.out.println();

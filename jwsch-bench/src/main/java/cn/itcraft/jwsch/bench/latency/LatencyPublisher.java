@@ -22,7 +22,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * 
  * <p>发送带时间戳的消息，用于测量端到端延迟。
  * 
- * <p>消息体格式：8字节nanoTime + 8字节序列号 + N字节负载。
+ * <p>消息体格式：8字节时间戳 + 8字节序列号 + N字节负载。
+ * 
+ * <p>时间戳默认使用 {@link System#nanoTime()}（仅同机可比）；跨机测试时使用
+ * 墙钟模式 {@link System#currentTimeMillis()}，依赖 NTP 时钟同步。
  */
 public final class LatencyPublisher {
     
@@ -33,6 +36,7 @@ public final class LatencyPublisher {
     private final String topic;
     private final long sendIntervalMicros;
     private final int payloadSize;
+    private final boolean wallClock;
     private final ScheduledExecutorService scheduler;
     private final AtomicLong sequence = new AtomicLong(0);
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -41,7 +45,7 @@ public final class LatencyPublisher {
     private final AtomicLong sendCount = new AtomicLong(0);
     
     /**
-     * 创建延迟测试发布者实例。
+     * 创建延迟测试发布者实例（默认使用 nanoTime 单调时钟）。
      * 
      * @param host                目标主机
      * @param port                目标端口
@@ -52,9 +56,30 @@ public final class LatencyPublisher {
      */
     public LatencyPublisher(String host, int port, String topic, 
                             long sendIntervalMicros, int payloadSize) throws Exception {
+        this(host, port, topic, sendIntervalMicros, payloadSize, false);
+    }
+    
+    /**
+     * 创建延迟测试发布者实例。
+     * 
+     * <p>跨机测试时必须使用墙钟模式（{@code wallClock=true}），因为各主机的
+     * {@link System#nanoTime()} 基准不同，只有基于 NTP 同步的
+     * {@link System#currentTimeMillis()} 才能被远端订阅者解释。
+     * 
+     * @param host                目标主机
+     * @param port                目标端口
+     * @param topic               发布主题
+     * @param sendIntervalMicros  发送间隔（微秒）
+     * @param payloadSize         负载大小（字节）
+     * @param wallClock           true 使用 currentTimeMillis（跨机），false 使用 nanoTime（同机）
+     * @throws Exception 如果连接失败或初始化失败
+     */
+    public LatencyPublisher(String host, int port, String topic, 
+                            long sendIntervalMicros, int payloadSize, boolean wallClock) throws Exception {
         this.topic = topic;
         this.sendIntervalMicros = sendIntervalMicros;
         this.payloadSize = payloadSize;
+        this.wallClock = wallClock;
         this.payloadTemplate = new byte[payloadSize];
         for (int i = 0; i < payloadSize; i++) {
             payloadTemplate[i] = PAYLOAD_BYTE;
@@ -135,7 +160,7 @@ public final class LatencyPublisher {
      */
     private ByteBuf createMessageBody(long seq) {
         ByteBuf buf = allocator.directBuffer(16 + payloadSize);
-        buf.writeLong(System.nanoTime());
+        buf.writeLong(wallClock ? System.currentTimeMillis() : System.nanoTime());
         buf.writeLong(seq);
         buf.writeBytes(payloadTemplate);
         return buf;
