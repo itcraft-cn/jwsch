@@ -1,0 +1,16 @@
+=== Latency Test Publisher ===
+Host: 172.22.133.252
+TCP Port: 9090
+Topic: /topic/latency
+Send Interval: 100μs
+Payload Size: 64 bytes
+Clock: wall (currentTimeMillis)
+Duration: 0 minute(s)
+
+16:31:05.684 [main] INFO  c.i.j.c.eventloop.NativeTransport - Epoll native transport is available
+16:31:05.698 [main] INFO  c.itcraft.jwsch.cli.client.TcpClient - Created dedicated EventLoopGroup with 1 threads, prefix=jwsch-tcp-client-worker, transport=epoll
+16:31:05.714 [main] INFO  c.itcraft.jwsch.cli.client.TcpClient - TcpClient started (TCP)
+16:31:05.747 [main] INFO  c.itcraft.jwsch.cli.client.TcpClient - Connected to 172.22.133.252:9090 (TCP)
+Publisher started, sending every 100μs, payload=64 bytes
+PUBLISHER_READY
+16:31:05.756 [jwsch-tcp-client-worker-1-1] INFO  c.i.jwsch.cli.client.TcpHandler - Received connectionId: 1790929825228

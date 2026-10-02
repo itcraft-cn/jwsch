@@ -1,0 +1,67 @@
+=== Jwsch Benchmark Server ===
+WebSocket Port: 8080
+TCP Port: 9090
+Worker Threads: 8
+Inbound Rate Limit: disabled
+Outbound Queue Limit: 65536 (disconnect 262144)
+
+16:30:23.585 [main] INFO  c.i.j.c.eventloop.NativeTransport - Epoll native transport is available
+16:30:23.647 [main] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer started on port 8080 (WS, transport=epoll)
+16:30:23.672 [main] INFO  c.i.jwsch.srv.server.tcp.TcpServer - TcpServer started on port 9090 (transport=epoll)
+16:30:23.672 [main] INFO  cn.itcraft.jwsch.srv.JwschServer - Topic-level backpressure enabled: trigger=0.3, release=0.1
+16:30:23.672 [main] INFO  cn.itcraft.jwsch.srv.JwschServer - JwschServer started (WebSocket: 8080, TCP: 9090, Health: disabled, Metrics: disabled)
+Server started: WebSocket=8080, TCP=9090
+SERVER_READY
+16:30:25.221 [jwsch-ws-worker-3-1] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer initializing with maxFrameSize=524288
+16:30:25.224 [jwsch-ws-worker-3-1] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection added: id=1790929825225
+16:30:25.235 [jwsch-ws-worker-3-1] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket connected: connectionId=1790929825225, remote=/172.22.133.253:42434
+16:30:25.240 [jwsch-ws-worker-3-1] INFO  c.i.j.s.s.websocket.WebSocketHandler - Subscribed: connectionId=1790929825225, topic=/topic/latency
+16:30:26.774 [jwsch-tcp-worker-5-1] INFO  c.i.j.s.s.tcp.TcpServerInitializer - L1 rate limiter disabled
+16:30:26.775 [jwsch-tcp-worker-5-1] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client connected: connectionId=1790929825226, remote=/172.22.133.251:55394
+16:30:55.241 [jwsch-ws-worker-3-1] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection removed: id=1790929825225
+16:30:55.241 [jwsch-ws-worker-3-1] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket disconnected: connectionId=1790929825225
+16:31:00.684 [jwsch-tcp-worker-5-1] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client disconnected: connectionId=1790929825226, remote=/172.22.133.251:55394
+16:31:04.136 [jwsch-ws-worker-3-2] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer initializing with maxFrameSize=524288
+16:31:04.138 [jwsch-ws-worker-3-2] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection added: id=1790929825227
+16:31:04.139 [jwsch-ws-worker-3-2] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket connected: connectionId=1790929825227, remote=/172.22.133.253:52860
+16:31:04.143 [jwsch-ws-worker-3-2] INFO  c.i.j.s.s.websocket.WebSocketHandler - Subscribed: connectionId=1790929825227, topic=/topic/latency
+16:31:05.744 [jwsch-tcp-worker-5-2] INFO  c.i.j.s.s.tcp.TcpServerInitializer - L1 rate limiter disabled
+16:31:05.745 [jwsch-tcp-worker-5-2] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client connected: connectionId=1790929825228, remote=/172.22.133.251:56080
+16:31:34.144 [jwsch-ws-worker-3-2] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection removed: id=1790929825227
+16:31:34.144 [jwsch-ws-worker-3-2] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket disconnected: connectionId=1790929825227
+16:31:39.122 [jwsch-tcp-worker-5-2] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client disconnected: connectionId=1790929825228, remote=/172.22.133.251:56080
+16:31:43.021 [jwsch-ws-worker-3-3] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer initializing with maxFrameSize=524288
+16:31:43.022 [jwsch-ws-worker-3-3] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection added: id=1790929825229
+16:31:43.024 [jwsch-ws-worker-3-3] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket connected: connectionId=1790929825229, remote=/172.22.133.253:41162
+16:31:43.028 [jwsch-ws-worker-3-3] INFO  c.i.j.s.s.websocket.WebSocketHandler - Subscribed: connectionId=1790929825229, topic=/topic/latency
+16:31:44.791 [jwsch-tcp-worker-5-3] INFO  c.i.j.s.s.tcp.TcpServerInitializer - L1 rate limiter disabled
+16:31:44.791 [jwsch-tcp-worker-5-3] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client connected: connectionId=1790929825230, remote=/172.22.133.251:37992
+16:32:13.072 [jwsch-ws-worker-3-3] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection removed: id=1790929825229
+16:32:13.072 [jwsch-ws-worker-3-3] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket disconnected: connectionId=1790929825229
+16:32:18.556 [jwsch-tcp-worker-5-3] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client disconnected: connectionId=1790929825230, remote=/172.22.133.251:37992
+16:32:21.941 [jwsch-ws-worker-3-4] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer initializing with maxFrameSize=524288
+16:32:21.941 [jwsch-ws-worker-3-4] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection added: id=1790929825231
+16:32:21.942 [jwsch-ws-worker-3-4] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket connected: connectionId=1790929825231, remote=/172.22.133.253:34096
+16:32:21.946 [jwsch-ws-worker-3-4] INFO  c.i.j.s.s.websocket.WebSocketHandler - Subscribed: connectionId=1790929825231, topic=/topic/latency
+16:32:23.607 [jwsch-tcp-worker-5-4] INFO  c.i.j.s.s.tcp.TcpServerInitializer - L1 rate limiter disabled
+16:32:23.608 [jwsch-tcp-worker-5-4] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client connected: connectionId=1790929825232, remote=/172.22.133.251:44358
+16:32:51.947 [jwsch-ws-worker-3-4] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection removed: id=1790929825231
+16:32:51.947 [jwsch-ws-worker-3-4] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket disconnected: connectionId=1790929825231
+16:32:57.002 [jwsch-tcp-worker-5-4] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client disconnected: connectionId=1790929825232, remote=/172.22.133.251:44358
+16:33:00.767 [jwsch-ws-worker-3-5] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer initializing with maxFrameSize=524288
+16:33:00.769 [jwsch-ws-worker-3-5] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection added: id=1790929825233
+16:33:00.770 [jwsch-ws-worker-3-5] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket connected: connectionId=1790929825233, remote=/172.22.133.253:45846
+16:33:00.774 [jwsch-ws-worker-3-5] INFO  c.i.j.s.s.websocket.WebSocketHandler - Subscribed: connectionId=1790929825233, topic=/topic/latency
+16:33:02.700 [jwsch-tcp-worker-5-5] INFO  c.i.j.s.s.tcp.TcpServerInitializer - L1 rate limiter disabled
+16:33:02.701 [jwsch-tcp-worker-5-5] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client connected: connectionId=1790929825234, remote=/172.22.133.251:53524
+16:33:36.082 [jwsch-tcp-worker-5-5] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client disconnected: connectionId=1790929825234, remote=/172.22.133.251:53524
+16:33:38.632 [jwsch-ws-worker-3-5] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection removed: id=1790929825233
+16:33:38.632 [jwsch-ws-worker-3-5] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket disconnected: connectionId=1790929825233
+16:33:39.963 [jwsch-ws-worker-3-6] INFO  c.i.j.s.s.websocket.WebSocketServer - WebSocketServer initializing with maxFrameSize=524288
+16:33:39.964 [jwsch-ws-worker-3-6] INFO  c.i.jwsch.srv.router.PacketRouter - Frontend connection added: id=1790929825235
+16:33:39.965 [jwsch-ws-worker-3-6] INFO  c.i.j.s.s.websocket.WebSocketHandler - WebSocket connected: connectionId=1790929825235, remote=/172.22.133.253:36482
+16:33:39.969 [jwsch-ws-worker-3-6] INFO  c.i.j.s.s.websocket.WebSocketHandler - Subscribed: connectionId=1790929825235, topic=/topic/latency
+16:33:41.762 [jwsch-tcp-worker-5-6] INFO  c.i.j.s.s.tcp.TcpServerInitializer - L1 rate limiter disabled
+16:33:41.763 [jwsch-tcp-worker-5-6] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client connected: connectionId=1790929825236, remote=/172.22.133.251:40908
+16:34:11.264 [jwsch-ws-worker-3-6] WARN  c.i.j.s.s.websocket.WebSocketHandler - Slow query detected: connectionId=1790929825235, duration=680ms, threshold=100ms
+16:34:15.714 [jwsch-tcp-worker-5-6] INFO  c.i.j.s.server.tcp.TcpServerHandler - TCP client disconnected: connectionId=1790929825236, remote=/172.22.133.251:40908

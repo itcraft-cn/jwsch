@@ -1,0 +1,35 @@
+=== Jwsch Node Subscriber Benchmark ===
+WebSocket URL: ws://172.22.133.252:8080/ws
+Topic: /topic/latency
+Clients: 1
+Duration: 30s
+Report Interval: 5s
+Warmup: 2s
+Label: over
+[2026-10-02T08:33:39.967Z] [Jwsch] [INFO] WebSocket connected: ws://172.22.133.252:8080/ws
+SUBSCRIBER_READY
+[2026-10-02T08:33:39.969Z] [Jwsch] [INFO] Received connectionId: 1790929825235
+[REPORT] t=5.0s recv=159027 rate=31801 msg/s avg=116.664ms p99=1727.000ms
+[REPORT] t=10.0s recv=171169 rate=2428 msg/s avg=416.910ms p99=5702.000ms
+[REPORT] t=15.0s recv=185149 rate=2795 msg/s avg=1079.972ms p99=11007.000ms
+[REPORT] t=20.0s recv=185149 rate=0 msg/s avg=1079.972ms p99=11007.000ms
+[REPORT] t=25.0s recv=185149 rate=0 msg/s avg=1079.972ms p99=11007.000ms
+
+=== Node Subscriber Result ===
+label: over
+clients: 1
+duration_s: 30.005
+received: 185149
+throughput_msg_s: 6170.5
+active_window_s: 12.447
+active_throughput_msg_s: 14874.9
+latency_samples: 178705
+lat_avg_ms: 1079.972
+lat_min_ms: 6.000
+lat_p50_ms: 72.000
+lat_p90_ms: 4714.000
+lat_p95_ms: 8009.000
+lat_p99_ms: 11007.000
+lat_max_ms: 11015.000
+lat_negative: 0
+RESULT_DONE
