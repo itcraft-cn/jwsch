@@ -1,23 +1,23 @@
-# jwsch Cluster Manual
+# jwsch 集群手册
 
-[中文文档](MANUAL_cn.md) | [README](README.md) | [Changelog](CHANGELOG.md)
+[English](MANUAL_en.md) | [README](README.md) | [变更日志](CHANGELOG.md)
 
-## Table of Contents
+## 目录
 
-1. [Cluster Architecture](#1-cluster-architecture)
-2. [Configuration Guide](#2-configuration-guide)
-3. [Node Deployment](#3-node-deployment)
-4. [Message Routing](#4-message-routing)
-5. [Operations & Monitoring](#5-operations--monitoring)
-6. [Troubleshooting](#6-troubleshooting)
+1. [集群架构](#1-集群架构)
+2. [配置指南](#2-配置指南)
+3. [节点部署](#3-节点部署)
+4. [消息路由](#4-消息路由)
+5. [运维监控](#5-运维监控)
+6. [故障排查](#6-故障排查)
 
 ---
 
-## 1. Cluster Architecture
+## 1. 集群架构
 
-### 1.1 Topology
+### 1.1 拓扑结构
 
-jwsch cluster uses a Mesh topology where all nodes are interconnected:
+jwsch 集群采用 Mesh 拓扑，所有节点之间两两互联：
 
 ```
                     ┌─────────────┐
@@ -42,20 +42,20 @@ jwsch cluster uses a Mesh topology where all nodes are interconnected:
                     └─────────────┘
 ```
 
-### 1.2 Node Roles
+### 1.2 节点角色
 
-| Role | Description |
-|------|-------------|
-| **Base Node** | Node where `cluster-port == base-port`; new nodes connect here first |
-| **Non-Base Node** | Node where `cluster-port != base-port`; auto-connects to Base Node after startup |
+| 角色 | 说明 |
+|------|------|
+| **Base Node** | `cluster-port == base-port` 的节点，新节点启动时首先连接此节点 |
+| **Non-Base Node** | `cluster-port != base-port` 的节点，启动后自动连接 Base Node |
 
-### 1.3 Port Allocation
+### 1.3 端口分配
 
 ```
 base-port = 9090
 port-range = 3
 
-→ Available ports: 9090, 9091, 9092
+→ 可用端口: 9090, 9091, 9092
 → Node-A: bind-port=9090 (Base)
 → Node-B: bind-port=9091 (Non-Base)
 → Node-C: bind-port=9092 (Non-Base)
@@ -63,11 +63,11 @@ port-range = 3
 
 ---
 
-## 2. Configuration Guide
+## 2. 配置指南
 
-### 2.1 YAML Configuration
+### 2.1 YAML 配置
 
-**Single-node config (node1.yaml)**:
+**单节点配置 (node1.yaml)**:
 
 ```yaml
 cluster:
@@ -92,7 +92,7 @@ tcp:
   port: 9090
 ```
 
-**Node B config (node2.yaml)**:
+**节点 B 配置 (node2.yaml)**:
 
 ```yaml
 cluster:
@@ -113,61 +113,61 @@ tcp:
   port: 9091
 ```
 
-### 2.2 Configuration Reference
+### 2.2 配置项说明
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | boolean | false | Enable clustering |
-| `node-prefix` | String | jwsch | Node prefix for nodeId generation |
-| `base-port` | int | 9090 | Cluster base port |
-| `port-range` | int | 3 | Port range |
-| `bind-port` | int | -1 | Bind port, -1 means use base-port |
-| `startup-wait-seconds` | int | 5 | Non-base node startup wait time |
-| `sync-interval-seconds` | int | 30 | Full sync interval |
-| `heartbeat-interval-seconds` | int | 10 | Heartbeat send interval |
-| `heartbeat-timeout-seconds` | int | 30 | Heartbeat timeout |
-| `nodes` | List | [] | Cluster node list |
+| 配置项 | 类型 | 默认值 | 说明 |
+|--------|------|--------|------|
+| `enabled` | boolean | false | 是否启用集群 |
+| `node-prefix` | String | jwsch | 节点前缀，用于生成 nodeId |
+| `base-port` | int | 9090 | 集群基准端口 |
+| `port-range` | int | 3 | 端口范围 |
+| `bind-port` | int | -1 | 绑定端口，-1 表示使用 base-port |
+| `startup-wait-seconds` | int | 5 | 非基端口节点启动等待时间 |
+| `sync-interval-seconds` | int | 30 | 全量同步间隔 |
+| `heartbeat-interval-seconds` | int | 10 | 心跳发送间隔 |
+| `heartbeat-timeout-seconds` | int | 30 | 心跳超时时间 |
+| `nodes` | List | [] | 集群节点列表 |
 
-### 2.3 advertise-host Configuration
+### 2.3 advertise-host 配置
 
-Node's external communication address, three configuration methods:
+节点对外通信地址，三种配置方式：
 
-**Method 1: JVM argument (recommended)**
+**方式1: JVM 参数（推荐）**
 
 ```bash
 java -Djwsch.advertise.host=192.168.1.10 -jar jwschd.jar
 ```
 
-**Method 2: Environment variable**
+**方式2: 环境变量**
 
 ```bash
 export JWSCH_ADVERTISE_HOST=192.168.1.10
 java -jar jwschd.jar
 ```
 
-**Method 3: Auto-detect**
+**方式3: 自动检测**
 
 ```bash
 java -jar jwschd.jar
-# Automatically picks the first non-loopback network interface address
+# 自动取第一个非回环网卡地址
 ```
 
-**Priority**: JVM arg > Environment variable > Auto-detect
+**优先级**: JVM 参数 > 环境变量 > 自动检测
 
 ---
 
-## 3. Node Deployment
+## 3. 节点部署
 
-### 3.1 Startup Order
+### 3.1 启动顺序
 
 ```
-1. Start Node-A (Base Node, bind-port=9090)
-2. Wait 5 seconds
-3. Start Node-B (bind-port=9091) → auto-connects to Node-A
-4. Start Node-C (bind-port=9092) → auto-connects to Node-A
+1. 启动 Node-A (Base Node, bind-port=9090)
+2. 等待 5 秒
+3. 启动 Node-B (bind-port=9091) → 自动连接 Node-A
+4. 启动 Node-C (bind-port=9092) → 自动连接 Node-A
 ```
 
-### 3.2 Startup Script Example
+### 3.2 启动脚本示例
 
 **start-cluster.sh**:
 
@@ -181,11 +181,11 @@ PORT_RANGE=3
 for i in "${!NODES[@]}"; do
   HOST=${NODES[$i]}
   BIND_PORT=$((BASE_PORT + i))
-
+  
   ssh $HOST "java -Djwsch.advertise.host=$HOST \
     -jar /opt/jwsch/jwschd.jar \
     --config /opt/jwsch/config/node$((i+1)).yaml &"
-
+  
   if [ $i -eq 0 ]; then
     echo "Waiting for base node to start..."
     sleep 5
@@ -193,7 +193,7 @@ for i in "${!NODES[@]}"; do
 done
 ```
 
-### 3.3 Docker Deployment
+### 3.3 Docker 部署
 
 **docker-compose.yml**:
 
@@ -208,7 +208,7 @@ services:
     ports:
       - "8080:8080"
       - "9090:9090"
-
+  
   jwsch-node2:
     image: jwsch:latest
     environment:
@@ -223,175 +223,175 @@ services:
 
 ---
 
-## 4. Message Routing
+## 4. 消息路由
 
-### 4.1 REQUEST (by targetId)
+### 4.1 REQUEST (按 targetId 路由)
 
 ```
-Publisher → Server-A → lookup targetId's node
+Publisher → Server-A → 查找 targetId 所在节点
                        ↓
-             If local → send directly
-             If remote → CLUSTER_FORWARD to target node
+            如果在本地 → 直接发送
+            如果在远程 → CLUSTER_FORWARD 到目标节点
 ```
 
-### 4.2 PUSH (by topic)
+### 4.2 PUSH (按 topic 路由)
 
 ```
-Publisher → Server-A → lookup connections subscribed to topic
+Publisher → Server-A → 查找订阅 topic 的连接
                        ↓
-             Local subscribers → send directly
-             Remote subscribers → CLUSTER_BROADCAST
+            本地有订阅 → 直接发送
+            远程有订阅 → CLUSTER_BROADCAST 扩散
                        ↓
-             Server-B receives → check local subscriptions → send to subscribers
+            Server-B 收到 → 检查本地订阅 → 发送给订阅者
 ```
 
-### 4.3 BROADCAST (all nodes)
+### 4.3 BROADCAST (全网扩散)
 
 ```
-Publisher → Server-A → CLUSTER_BROADCAST to all nodes
+Publisher → Server-A → CLUSTER_BROADCAST 到所有节点
                        ↓
-             All nodes receive → send to all local connections
+            所有节点收到 → 发送给本地所有连接
 ```
 
-### 4.4 BloomFilter Optimization
+### 4.4 BloomFilter 优化
 
-Each node maintains a BloomFilter recording topic hashes subscribed by local connections:
+每个节点维护一个 BloomFilter 记录本节点订阅的 topic hash：
 
 ```java
-// Before sending PUSH
+// 发送 PUSH 前
 if (!remoteNode.getBloomFilter().mightHaveTopic(topicHash)) {
-    // This node definitely has no subscription for this topic, skip
+    // 该节点肯定没有订阅此 topic，跳过
     return;
 }
-// Possibly subscribed (3% false positive rate), send CLUSTER_BROADCAST
+// 可能订阅（3% 误判率），发送 CLUSTER_BROADCAST
 ```
 
 ---
 
-## 5. Operations & Monitoring
+## 5. 运维监控
 
-### 5.1 Log Keywords
+### 5.1 日志关键字
 
-| Keyword | Description |
-|---------|-------------|
-| `Cluster started` | Node startup complete |
-| `Node joined` | New node joined |
-| `Node left` | Node left |
-| `Cluster sync` | Sync event |
-| `Cluster forward` | Message forwarding |
-| `Oversize packet dropped` | Packet dropped due to size limit (see 5.2 packet size limits) |
-| `Oversize packet content` | Oversize packet content digest (requires `log-oversize-content`, printed by jwsch-oversize-dump thread) |
+| 关键字 | 说明 |
+|--------|------|
+| `Cluster started` | 节点启动完成 |
+| `Node joined` | 新节点加入 |
+| `Node left` | 节点离开 |
+| `Cluster sync` | 同步事件 |
+| `Cluster forward` | 消息转发 |
+| `Oversize packet dropped` | 数据包超过大小上限被丢弃（见 2.4 数据包大小限制） |
+| `Oversize packet content` | 超限包内容摘要（须开启 `log-oversize-content`，由 jwsch-oversize-dump 线程打印） |
 
-### 5.2 Packet Size Limits
+### 5.2 数据包大小限制
 
-Both client and server enforce packet total length (Header + Body); oversize packets are **dropped without closing the connection**:
+客户端与服务端**两端同时约束**数据包总长度（Header + Body），超限直接丢弃、不关闭连接：
 
-| Limit | Value | Notes |
+| 限制 | 取值 | 说明 |
 |------|------|------|
-| Hard limit | **500 KB (hardcoded)** | Any configured value above 500KB is force-clamped to 500KB, cannot be raised |
-| Soft limit | **200 KB (default, adjustable)** | Packets exceeding this value are dropped on both send and receive sides |
+| 硬上限 | **500 KB（硬编码）** | 任何配置值超过 500KB 都会被强制钳制为 500KB，不可放宽 |
+| 软上限 | **200 KB（默认，可调整）** | 超过此值的包在收/发两端直接丢弃 |
 
-- Config above the hard limit takes effect as 500KB; non-positive values fall back to the 200KB default.
-- On drop a WARN log is printed with packet length, limit and packet hash: `Oversize packet dropped: packetLength=... limit=... hash=...`
-- Optional `log-oversize-content` (default false): dropped packet bytes go to a bounded queue and a dedicated `jwsch-oversize-dump` daemon thread prints the **first 200 bytes** (fixed, not adjustable). The thread is lazily started on the first dropped packet; with the option off no thread is created at all.
-- Enforced in TCP decoder/encoder (both ends) and WebSocket ingress (`WebSocketHandler`); config keys: `tcp.max-packet-length` / `websocket.max-packet-length`.
+- 配置值超过硬上限时，实际生效值为 500KB；非正值回落为默认 200KB。
+- 丢弃时打印 WARN 日志，包含包长度、限制值与包 hash：`Oversize packet dropped: packetLength=... limit=... hash=...`
+- 可选配置 `log-oversize-content`（默认 false）：开启后丢弃的包字节进入有界队列，由独立的 `jwsch-oversize-dump` 守护线程打印**前 200 字节**（固定不可调整）；该线程在**发生第一次丢包时才懒启动**，配置关闭时完全不创建线程。
+- 生效位置：TCP 解码器/编码器（收发两端共建管线）、WebSocket 入站帧（`WebSocketHandler`）；配置键：`tcp.max-packet-length` / `websocket.max-packet-length`。
 
 ```yaml
 jwsch:
   tcp:
-    max-packet-length: 204800   # soft limit, default 200KB, at most 500KB
-    log-oversize-content: false # dump first 200 bytes of dropped packets
+    max-packet-length: 204800   # 软上限，默认 200KB，最多 500KB
+    log-oversize-content: false # 是否打印超限包前 200 字节内容
   websocket:
     max-packet-length: 204800
     log-oversize-content: false
 ```
 
-### 5.3 Key Metrics
+### 5.3 关键指标
 
-| Metric | Description |
-|--------|-------------|
-| `cluster.nodes.count` | Number of cluster nodes |
-| `cluster.connections.local` | Local connection count |
-| `cluster.connections.remote` | Remote connection count |
-| `cluster.forward.count` | Forwarded message count |
-| `cluster.sync.duration` | Sync duration |
+| 指标 | 说明 |
+|------|------|
+| `cluster.nodes.count` | 集群节点数 |
+| `cluster.connections.local` | 本地连接数 |
+| `cluster.connections.remote` | 远程连接数 |
+| `cluster.forward.count` | 转发消息数 |
+| `cluster.sync.duration` | 同步耗时 |
 
-### 5.4 Health Check
+### 5.4 健康检查
 
 ```bash
-# Check node status
+# 检查节点状态
 curl http://localhost:8081/health
 
-# Check cluster members
+# 检查集群成员
 curl http://localhost:8081/cluster/members
 ```
 
 ---
 
-## 6. Troubleshooting
+## 6. 故障排查
 
-### 6.1 Node Cannot Join Cluster
+### 6.1 节点无法加入集群
 
-**Symptom**: Log shows `Connection refused` or `Timeout`
+**症状**: 日志显示 `Connection refused` 或 `Timeout`
 
-**Checklist**:
+**排查**:
 
-1. Check network connectivity: `telnet <base-node> <base-port>`
-2. Check firewall: ensure cluster ports are open
-3. Check `advertise-host`: ensure correct external IP
-4. Check `bind-port`: ensure port is not already in use
+1. 检查网络连通性：`telnet <base-node> <base-port>`
+2. 检查防火墙：确保集群端口开放
+3. 检查 `advertise-host`：确保配置正确的外网 IP
+4. 检查 `bind-port`：确保端口未被占用
 
-### 6.2 Messages Not Delivered
+### 6.2 消息未送达
 
-**Symptom**: Subscriber does not receive sent messages
+**症状**: 发送消息后订阅者未收到
 
-**Checklist**:
+**排查**:
 
-1. Check subscription status: `TopicSubscription.getTopicHashesForConnection()`
-2. Check BloomFilter: `NodeBloomFilter.mightHaveTopic()`
-3. Check forwarding logs: search for `Cluster forward`
-4. Check connection status: `ClusterConnectionRegistry.findNodeForConnection()`
+1. 检查订阅是否成功：`TopicSubscription.getTopicHashesForConnection()`
+2. 检查 BloomFilter：`NodeBloomFilter.mightHaveTopic()`
+3. 检查转发日志：搜索 `Cluster forward`
+4. 检查连接状态：`ClusterConnectionRegistry.findNodeForConnection()`
 
-### 6.3 Node Frequently Disconnects
+### 6.3 节点频繁断连
 
-**Symptom**: Log shows frequent `Node disconnected` / `Node reconnected`
+**症状**: 日志频繁出现 `Node disconnected` / `Node reconnected`
 
-**Checklist**:
+**排查**:
 
-1. Check network stability
-2. Check heartbeat config: `heartbeat-interval-seconds` / `heartbeat-timeout-seconds`
-3. Check GC pauses: long GC pauses can cause heartbeat timeout
-4. Check system load: CPU/memory/network bandwidth
+1. 检查网络稳定性
+2. 检查心跳配置：`heartbeat-interval-seconds` / `heartbeat-timeout-seconds`
+3. 检查 GC 停顿：长时间 GC 会导致心跳超时
+4. 检查系统负载：CPU/内存/网络带宽
 
-### 6.4 Performance Tuning
+### 6.4 性能调优
 
-**Recommendations**:
+**建议**:
 
-1. Disable Netty leak detection: `-Dio.netty.leakDetection.level=disabled`
-2. Adjust EventLoop thread count: based on CPU cores
-3. Adjust BloomFilter capacity: `expectedInsertions` based on actual topic count
-4. Adjust sync interval: `sync-interval-seconds` based on business requirements
+1. 禁用 Netty 泄漏检测：`-Dio.netty.leakDetection.level=disabled`
+2. 调整 EventLoop 线程数：根据 CPU 核心数
+3. 调整 BloomFilter 容量：`expectedInsertions` 根据实际 topic 数量
+4. 调整同步间隔：`sync-interval-seconds` 根据业务需求
 
 ---
 
-## Appendix
+## 附录
 
-### A. Cluster Command Reference
+### A. 集群命令列表
 
-| Command | Code | Description |
-|---------|------|-------------|
-| CLUSTER_JOIN | 0x10 | Node join |
-| CLUSTER_MEMBERSHIP | 0x11 | Membership update |
-| CLUSTER_SYNC | 0x12 | Connection sync |
-| CLUSTER_FORWARD | 0x13 | Message forwarding |
-| CLUSTER_BROADCAST | 0x14 | Message broadcast |
-| CLUSTER_HEARTBEAT | 0x15 | Heartbeat |
+| 命令 | Code | 说明 |
+|------|------|------|
+| CLUSTER_JOIN | 0x10 | 节点加入 |
+| CLUSTER_MEMBERSHIP | 0x11 | 成员更新 |
+| CLUSTER_SYNC | 0x12 | 连接同步 |
+| CLUSTER_FORWARD | 0x13 | 消息转发 |
+| CLUSTER_BROADCAST | 0x14 | 消息扩散 |
+| CLUSTER_HEARTBEAT | 0x15 | 心跳 |
 
-### B. NodeSelector Strategies
+### B. NodeSelector 策略
 
-| Strategy | Description | Use Case |
-|----------|-------------|----------|
-| Random | Random selection | Load balancing |
-| RoundRobin | Round-robin selection | Even distribution |
-| Priority | Priority-based selection | Primary/backup failover |
-| Single | Fixed node | Testing / single node |
+| 策略 | 说明 | 适用场景 |
+|------|------|----------|
+| Random | 随机选择 | 负载均衡 |
+| RoundRobin | 轮询选择 | 均匀分布 |
+| Priority | 按优先级选择 | 主备切换 |
+| Single | 固定节点 | 测试/单节点 |
